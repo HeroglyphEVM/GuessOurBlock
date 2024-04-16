@@ -1,0 +1,44 @@
+[profile.default]
+fs_permissions = [{ access = "read-write", path = "./"}]
+solc = '0.8.25'
+src = 'src'
+test = 'test'
+out = 'out'
+libs = ['lib']
+via_ir = true
+verbosity = 3
+remappings = [
+    'src/=src/'
+]
+
+[profile.e2e]
+match_path = "test/e2e/*"
+
+[profile.unit]
+block_number = 17373196
+block_timestamp = 1685467379
+match_path = "test/unit/*"
+
+[rpc_endpoints]
+localhost = "http://127.0.0.1:8545"
+mainnet = "${RPC_MAINNET}"
+sepolia = "${RPC_SEPOLIA}"
+arbitrum = "${RPC_ARBITRUM}"
+arbitrumTestnet = "${RPC_ARBITRUM_SEPOLIA}"
+
+[etherscan]
+mainnet = { key = "${ETHERSCAN_KEY}", chain = 1, url = "https://api.etherscan.io/api/"}
+sepolia = { key = "${ETHERSCAN_KEY}", chain = 11155111, url = "https://api-sepolia.etherscan.io/api"}
+arbitrum = { key = "${ARBISCAN_KEY}", chain = 42161, url = "https://api.arbiscan.io/api/"}
+arbitrumSepolia = { key = "${ARBISCAN_KEY}", chain = 421614, url = "https://api-sepolia.arbiscan.io/api/"}
+
+[fmt]
+line_length = 90
+tab_width = 2
+bracket_spacing = true
+int_types = "long"
+func_attrs_with_params_multiline = true
+quote_style = "double"
+number_underscore = "thousands"
+
+# See more config options https://github.com/foundry-rs/foundry/tree/master/crates/config
