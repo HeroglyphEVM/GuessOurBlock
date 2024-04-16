@@ -1,3 +1,9 @@
-[submodule "lib/forge-std"]
-	path = lib/forge-std
+[submodule "node_modules/@layerzerolabs/toolbox-foundry/lib/heroglyph-library"]
+	path = node_modules/@layerzerolabs/toolbox-foundry/lib/heroglyph-library
+	url = https://github.com/HeroglyphEVM/heroglyph-library
+[submodule "node_modules/@layerzerolabs/toolbox-foundry/lib/forge-std"]
+	path = node_modules/@layerzerolabs/toolbox-foundry/lib/forge-std
 	url = https://github.com/foundry-rs/forge-std
+[submodule "node_modules/@layerzerolabs/toolbox-foundry/lib/openzeppelin-contracts"]
+	path = node_modules/@layerzerolabs/toolbox-foundry/lib/openzeppelin-contracts
+	url = https://github.com/OpenZeppelin/openzeppelin-contracts
