@@ -43,7 +43,8 @@ contract BaseScript is Script {
 
   /**
    * _tryDeployContractDeterministic() Deploy Contract using Create3 Factory
-   * @param _factory address of CREATE3 Factory e.g: https://github.com/ZeframLou/create3-factory?tab=readme-ov-file#deployments
+   * @param _factory address of CREATE3 Factory e.g:
+   * https://github.com/ZeframLou/create3-factory?tab=readme-ov-file#deployments
    * @param _name Name that it will be saved under
    * @param _salt Salt of the contract
    * @param _creationCode type(MyContract).creationCode
@@ -128,7 +129,8 @@ contract BaseScript is Script {
 
   /**
    * @notice _getNetwork return the .env variable DEPLOY_NETWORK.
-   * @dev For a better experience, DEPLOY_NETWORK should be defined via _setNetwork(string memory _network) and not
+   * @dev For a better experience, DEPLOY_NETWORK should be defined via _setNetwork(string
+   * memory _network) and not
    * .env
    */
   function _getNetwork() internal view returns (string memory) {
@@ -137,10 +139,12 @@ contract BaseScript is Script {
 
   /**
    * @notice _saveDeployment - Get config file from "/script/config/`_fileName`.json
-   * @param _contractName the name of the contract (what will be shown inside the /deployments/ file)
+   * @param _contractName the name of the contract (what will be shown inside the
+   * /deployments/ file)
    * @param _contractAddress the address of the contract
    * @dev If the `_contractName` already exists, it will not save it again
-   * @dev Simulation broadcast will also save inside the deployments file. I haven't find a way to detect simulations
+   * @dev Simulation broadcast will also save inside the deployments file. I haven't find
+   * a way to detect simulations
    * yet
    */
   function _saveDeployment(string memory _contractName, address _contractAddress)
@@ -198,7 +202,8 @@ contract BaseScript is Script {
   /**
    * @notice _getConfig - Get config file from "/script/config/`_fileName`.json
    * @param _fileName the name of the config file (without extension)
-   * @return fileData_ Raw data of the file. use vm.parseJson(fileData_, jsonKey) to get the json encoded data
+   * @return fileData_ Raw data of the file. use vm.parseJson(fileData_, jsonKey) to get
+   * the json encoded data
    */
   function _getConfig(string memory _fileName) internal view returns (string memory) {
     string memory inputDir = string.concat(vm.projectRoot(), PATH_CONFIG);
@@ -219,7 +224,8 @@ contract BaseScript is Script {
   }
 
   /**
-   * @notice _loadContracts - Loads the deployed contracts from a network inside the mapping "contracts"
+   * @notice _loadContracts - Loads the deployed contracts from a network inside the
+   * mapping "contracts"
    */
   function _loadContracts() internal {
     if (_isSimulation()) return;
