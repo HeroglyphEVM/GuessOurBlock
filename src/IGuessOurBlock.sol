@@ -46,7 +46,7 @@ interface IGuessOurBlock {
      * @param _quantityGuess The quantity of guesses to make
      * @dev The user must pay the amount of ETH equivalent to the quantity of guesses they want to make
      * @dev The guess amount cannot be zero
-     * @dev the guessed block needs to be older one day older than the current block
+     * @dev the guessed block needs to be older than the `minimumBlockAge` compared to the current block
      * @dev the block needs to be after the `nextRoundStart` timestamp
      */
     function guess(uint32 _blockNumber, uint32 _quantityGuess) external payable;
@@ -57,7 +57,7 @@ interface IGuessOurBlock {
      * @param _quantityGuesses The quantity of guesses to make
      * @dev The user must pay the amount of ETH equivalent to the quantity of guesses they want to make
      * @dev The guess amount cannot be zero
-     * @dev the guessed block needs to be older one day older than the current block
+     * @dev the guessed block needs to be older than the `minimumBlockAge` compared to the current block
      * @dev the block needs to be after the `nextRoundStart` timestamp
      */
     function multiGuess(uint32[] calldata _blockNumbers, uint32[] calldata _quantityGuesses) external payable;
