@@ -155,7 +155,7 @@ contract GuessOurBlockReceiver is IGuessOurBlock, OAppReceiver {
         if (action.claimed) revert AlreadyClaimed();
         action.claimed = true;
 
-        toUser_ = _getSanitizedWinningPot(data.winningLot, action.guessWeight, data.totalGuessWeight);
+        toUser_ = _getSanitizedUserWinnings(data.winningLot, action.guessWeight, data.totalGuessWeight);
         if (toUser_ == 0) revert NoReward();
 
         _sendNative(msg.sender, toUser_);
@@ -218,10 +218,10 @@ contract GuessOurBlockReceiver is IGuessOurBlock, OAppReceiver {
 
         if (action.claimed) return 0;
 
-        return _getSanitizedWinningPot(data.winningLot, action.guessWeight, data.totalGuessWeight);
+        return _getSanitizedUserWinnings(data.winningLot, action.guessWeight, data.totalGuessWeight);
     }
 
-    function _getSanitizedWinningPot(uint128 _winningLot, uint128 _userWeight, uint128 _totalGuessWeight)
+    function _getSanitizedUserWinnings(uint128 _winningLot, uint128 _userWeight, uint128 _totalGuessWeight)
         internal
         pure
         returns (uint128 /*toUser_*/ )
