@@ -27,7 +27,7 @@ contract GuessOurBlockSender is TickerOperator, OAppSender {
         defaultLzOption = OptionsBuilder.newOptions().addExecutorLzReceiveOption(lzGasLimit, 0);
     }
 
-    function onValidatorTriggered(uint32, uint32 _blockNumber, address _validatorWithdrawer, uint128)
+    function onValidatorTriggered(uint32, uint32 _blockNumber, address _validatorWithdrawer, uint128 _heroglyphFee)
         external
         override
         onlyRelay
@@ -42,7 +42,7 @@ contract GuessOurBlockSender is TickerOperator, OAppSender {
 
         emit SendingWinningBlock(msgReceipt.guid, _blockNumber, _validatorWithdrawer);
 
-        _repayHeroglyph();
+        _repayHeroglyph(_heroglyphFee);
     }
 
     function updateLzGasLimit(uint32 _gasLimit) external onlyOwner {

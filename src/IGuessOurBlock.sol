@@ -5,32 +5,32 @@ interface IGuessOurBlock {
     error InvalidAmount();
     error BlockTooSoon();
     error MismatchArrays();
-    error NotVoted();
     error AlreadyClaimed();
     error NoReward();
-    error InvalidGuessAmount();
     error RoundNotStarted();
     error ExceedBPSMaximum();
-    error BlockAlreadyCompleted();
     error FailedToSendETH();
     error NoFailedETHPending();
+    error InvalidTailBlockNumber();
 
     event BlockWon(bytes32 indexed lzGuid, uint32 indexed blockId, uint128 lot);
-    event Guessed(address indexed wallet, uint32 indexed blockId, uint128 quantityGuess);
+    event Guessed(address indexed wallet, uint32 indexed blockId, uint128 guessWeight, uint128 nativeSent);
     event Claimed(address indexed wallet, uint32 indexed blockId, uint128 winningPot);
     event Donated(address indexed from, uint256 amount);
     event MinimumBlockAgeUpdated(uint32 minimumAgeInBlockNumber);
     event RoundPauseTimerUpdated(uint32 pauseTimer);
     event FeeUpdated(FeeStructure fee);
+    event GroupSizeUpdated(uint32 groupSize);
+    event ErrorBlockAlreadyCompleted(uint32 blockId);
 
     struct BlockMetadata {
         uint128 winningLot;
-        uint32 totalGuess;
+        uint128 totalGuessWeight;
         bool isCompleted;
     }
 
     struct BlockAction {
-        uint32 voted;
+        uint128 guessWeight;
         bool claimed;
     }
 
@@ -42,31 +42,31 @@ interface IGuessOurBlock {
 
     /**
      * @notice Guess the block number that will be called by a heroglyph validator using GOB's ticker
-     * @param _blockNumber The block number to guess
-     * @param _quantityGuess The quantity of guesses to make
+     * @param _blockNumberTail The block number tail to guess
      * @dev The user must pay the amount of ETH equivalent to the quantity of guesses they want to make
      * @dev The guess amount cannot be zero
      * @dev the guessed block needs to be older than the `minimumBlockAge` compared to the current block
      * @dev the block needs to be after the `nextRoundStart` timestamp
      */
-    function guess(uint32 _blockNumber, uint32 _quantityGuess) external payable;
+    function guess(uint32 _blockNumberTail) external payable;
 
     /**
      * @notice Guess the block number that will be called by a heroglyph validator using GOB's ticker
      * @param _blockNumbers The block numbers to guess
-     * @param _quantityGuesses The quantity of guesses to make
+     * @param _allocatedEthByGroups The amount of ETH allocated to each group
      * @dev The user must pay the amount of ETH equivalent to the quantity of guesses they want to make
      * @dev The guess amount cannot be zero
      * @dev the guessed block needs to be older than the `minimumBlockAge` compared to the current block
      * @dev the block needs to be after the `nextRoundStart` timestamp
      */
-    function multiGuess(uint32[] calldata _blockNumbers, uint32[] calldata _quantityGuesses) external payable;
+    function multiGuess(uint32[] calldata _blockNumbers, uint128[] calldata _allocatedEthByGroups) external payable;
 
     /**
      * @notice Claim the winning pot of a block
-     * @param _blockId The block id to claim
+     * @param _blockTailNumber The block tail to claim
+     * @return toUser_ The amount of ETH sent to the user
      */
-    function claim(uint32 _blockId) external;
+    function claim(uint32 _blockTailNumber) external returns (uint128 toUser_);
 
     /**
      * @notice If the system failed to send ETH, you can retry the transaction with this function
@@ -109,4 +109,9 @@ interface IGuessOurBlock {
      * @param _user The address of the user
      */
     function getFailedNative(address _user) external view returns (uint128);
+
+    /**
+     * @notice Get the latest, valid, tail block number
+     */
+    function getLatestTail() external view returns (uint32 latestTailBlock_);
 }
