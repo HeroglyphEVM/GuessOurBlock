@@ -276,9 +276,14 @@ contract GuessOurBlockReceiverTest is BaseTest {
 
         underTest.exposed_lzReceiver(generateOrigin(), abi.encode(winningBlock, validator));
 
+        uint32 nextRound = underTest.nextRoundStart();
+        skip(30);
+
         expectExactEmit();
         emit IGuessOurBlock.ErrorBlockAlreadyCompleted(sanitizedBlock);
         underTest.exposed_lzReceiver(generateOrigin(), abi.encode(winningBlock, validator));
+
+        assertEq(underTest.nextRoundStart(), nextRound);
     }
 
     function test_lzReceive_whenBlockWins_thenCallEvents() external prankAs(user_A) {
