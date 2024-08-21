@@ -6,7 +6,6 @@ import { GuessOurBlockReceiver, IGuessOurBlock } from "src/GuessOurBlockReceiver
 import { Origin } from "@layerzerolabs/lz-evm-oapp-v2/contracts/oapp/OApp.sol";
 import { Math } from "@openzeppelin/contracts/utils/math/Math.sol";
 import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
-import { FailOnReceive } from "test/mock/contract/FailOnReceive.t.sol";
 import { IDripVault } from "src/dripVaults/IDripVault.sol";
 
 contract GuessOurBlockReceiverTest is BaseTest {
@@ -112,7 +111,6 @@ contract GuessOurBlockReceiverTest is BaseTest {
         uint128 weight_One = getGuessWeight(sendingEth_One);
         uint128 weight_Two = getGuessWeight(sendingEth_Two);
         uint128 weight_Three = getGuessWeight(sendingEth_Three);
-        uint128 totalWeight = weight_One + weight_Two + weight_Three;
 
         uint256 expectingBalance = sendingEth_One + sendingEth_Two + sendingEth_Three;
 
@@ -126,6 +124,7 @@ contract GuessOurBlockReceiverTest is BaseTest {
 
         expectExactEmit();
         emit IGuessOurBlock.Guessed(user_A, blockId_One, weight_Three, sendingEth_Three);
+        vm.expectCall(mockDripVault, sendingEth_Three, abi.encodeWithSelector(IDripVault.deposit.selector));
         underTest.guess{ value: sendingEth_Three }(blockId_One);
 
         IGuessOurBlock.BlockAction memory actions_One = underTest.getUserAction(user_A, blockId_One);
@@ -256,6 +255,8 @@ contract GuessOurBlockReceiverTest is BaseTest {
             expectExactEmit();
             emit IGuessOurBlock.Guessed(user_A, blocks[i], getGuessWeight(guesses[i]), guesses[i]);
         }
+
+        vm.expectCall(mockDripVault, totalSentEth, abi.encodeWithSelector(IDripVault.deposit.selector));
         underTest.multiGuess{ value: totalSentEth }(blocks, guesses);
 
         IGuessOurBlock.BlockAction memory actions_A = underTest.getUserAction(user_A, blocks[0]);
@@ -299,6 +300,7 @@ contract GuessOurBlockReceiverTest is BaseTest {
         uint32 sanitizedBlock = winningBlock - winningBlock % GROUP_SIZE;
         uint128 donate = 23e18;
 
+        vm.expectCall(mockDripVault, donate, abi.encodeWithSelector(IDripVault.deposit.selector));
         underTest.donate{ value: donate }();
 
         bytes32 guid = underTest.MOCKED_GUID();
@@ -444,9 +446,6 @@ contract GuessOurBlockReceiverTest is BaseTest {
         changePrank(user_B);
         vm.deal(user_B, 100e18);
         underTest.guess{ value: userBSendingEth }(winningBlock);
-
-        uint256 userBalanceABefore = user_A.balance;
-        uint256 userBalanceBBefore = user_B.balance;
 
         underTest.exposed_lzReceiver(generateOrigin(), abi.encode(winningBlock, validator));
 

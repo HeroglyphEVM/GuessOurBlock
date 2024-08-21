@@ -21,42 +21,31 @@ interface IAaveV3Pool {
 
 contract AaveVault is BaseDripVault {
     IAaveV3Pool public aaveV3Pool;
-    bool isWETH;
+    IWETH public weth;
 
-    constructor(
-        address _owner,
-        address _gob,
-        address _aaveV3Pool,
-        address _inAsset,
-        bool _isWETH,
-        address _rateReceiver
-    ) BaseDripVault(_owner, _gob, _inAsset, _rateReceiver) {
+    constructor(address _owner, address _gob, address _aaveV3Pool, address _weth, address _rateReceiver)
+        BaseDripVault(_owner, _gob, _rateReceiver)
+    {
         aaveV3Pool = IAaveV3Pool(_aaveV3Pool);
-        isWETH = _isWETH;
+        weth = IWETH(_weth);
 
-        if (_inAsset == address(0)) {
-            IERC20(_inAsset).approve(_aaveV3Pool, type(uint256).max);
-        }
+        weth.approve(_aaveV3Pool, type(uint256).max);
     }
 
     function _afterDeposit(uint256 _amount) internal override {
-        if (isWETH) {
-            IWETH(inAsset).deposit{ value: _amount }();
-        }
-        aaveV3Pool.supply(inAsset, _amount, address(this), 0);
+        weth.deposit{ value: _amount }();
+        aaveV3Pool.supply(address(weth), _amount, address(this), 0);
     }
 
     function _beforeWithdrawal(address _to, uint256 _amount) internal override {
-        uint128 exited = uint128(aaveV3Pool.withdraw(inAsset, type(uint256).max, address(this)));
+        uint128 exited = uint128(aaveV3Pool.withdraw(address(weth), type(uint256).max, address(this)));
 
-        uint256 totalDeposit = getTotalDeposit();
-        uint256 interest = exited - totalDeposit;
+        uint256 cachedTotalDeposit = getTotalDeposit();
+        uint256 interest = exited - cachedTotalDeposit;
 
-        aaveV3Pool.supply(inAsset, totalDeposit - _amount, address(this), 0);
+        aaveV3Pool.supply(address(weth), cachedTotalDeposit - _amount, address(this), 0);
 
-        if (isWETH) {
-            IWETH(inAsset).withdraw(_amount + interest);
-        }
+        weth.withdraw(_amount + interest);
 
         _transfer(address(0), rateReceiver, interest);
         _transfer(address(0), _to, _amount);

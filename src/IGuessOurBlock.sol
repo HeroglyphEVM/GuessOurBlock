@@ -12,6 +12,7 @@ interface IGuessOurBlock {
     error InvalidTailBlockNumber();
     error CanNoLongerUpdateDripVault();
     error DripVaultCannotBeZero();
+    error InvalidSender();
 
     event BlockWon(bytes32 indexed lzGuid, uint32 indexed blockId, uint128 lot);
     event Guessed(address indexed wallet, uint32 indexed blockId, uint128 guessWeight, uint128 nativeSent);

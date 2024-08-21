@@ -8,7 +8,6 @@ import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 abstract contract BaseDripVault is IDripVault, Ownable {
     address public rateReceiver;
     address public gob;
-    address public inAsset;
     uint256 private totalDeposit;
 
     modifier onlyGob() {
@@ -16,19 +15,16 @@ abstract contract BaseDripVault is IDripVault, Ownable {
         _;
     }
 
-    constructor(address _owner, address _gob, address _inAsset, address _rateReceiver) Ownable(_owner) {
+    constructor(address _owner, address _gob, address _rateReceiver) Ownable(_owner) {
         gob = _gob;
-        inAsset = _inAsset;
         rateReceiver = _rateReceiver;
     }
 
-    function deposit(uint256 _amount) external payable override onlyGob {
-        if (inAsset == address(0) && _amount != msg.value) revert InvalidAmount();
-        if (_amount == 0) revert InvalidAmount();
+    function deposit() external payable override onlyGob {
+        if (msg.value == 0) revert InvalidAmount();
+        totalDeposit += msg.value;
 
-        totalDeposit += _amount;
-
-        _afterDeposit(_amount);
+        _afterDeposit(msg.value);
     }
 
     function _afterDeposit(uint256 _amount) internal virtual;
@@ -64,4 +60,6 @@ abstract contract BaseDripVault is IDripVault, Ownable {
     function getTotalDeposit() public view override returns (uint256) {
         return totalDeposit;
     }
+
+    receive() external payable { }
 }

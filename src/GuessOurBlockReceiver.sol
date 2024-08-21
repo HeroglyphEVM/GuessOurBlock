@@ -52,7 +52,7 @@ contract GuessOurBlockReceiver is IGuessOurBlock, Ownable, OAppReceiver {
     /// @inheritdoc IGuessOurBlock
     function guess(uint32 _blockNumber) external payable override {
         _guess(_blockNumber, uint128(msg.value));
-        dripVault.deposit{ value: msg.value }(msg.value);
+        dripVault.deposit{ value: msg.value }();
     }
 
     /// @inheritdoc IGuessOurBlock
@@ -73,7 +73,7 @@ contract GuessOurBlockReceiver is IGuessOurBlock, Ownable, OAppReceiver {
         }
 
         if (msg.value != totalCost || totalCost == 0) revert InvalidAmount();
-        dripVault.deposit{ value: msg.value }(msg.value);
+        dripVault.deposit{ value: msg.value }();
     }
 
     function _guess(uint32 _tailBlockNumber, uint128 _nativeSent) internal {
@@ -182,6 +182,7 @@ contract GuessOurBlockReceiver is IGuessOurBlock, Ownable, OAppReceiver {
     /// @inheritdoc IGuessOurBlock
     function donate() external payable override {
         lot += uint128(msg.value);
+        dripVault.deposit{ value: msg.value }();
         emit Donated(msg.sender, msg.value);
     }
 
@@ -278,5 +279,7 @@ contract GuessOurBlockReceiver is IGuessOurBlock, Ownable, OAppReceiver {
         return latestTailBlock_ < block.number + minimumBlockAge ? latestTailBlock_ + groupSize : latestTailBlock_;
     }
 
-    receive() external payable { }
+    receive() external payable {
+        if (msg.sender != address(dripVault)) revert InvalidSender();
+    }
 }
