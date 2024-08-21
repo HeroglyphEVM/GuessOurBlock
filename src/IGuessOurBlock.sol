@@ -12,6 +12,8 @@ interface IGuessOurBlock {
     error FailedToSendETH();
     error NoFailedETHPending();
     error InvalidTailBlockNumber();
+    error CanNoLongerUpdateDripVault();
+    error DripVaultCannotBeZero();
 
     event BlockWon(bytes32 indexed lzGuid, uint32 indexed blockId, uint128 lot);
     event Guessed(address indexed wallet, uint32 indexed blockId, uint128 guessWeight, uint128 nativeSent);
@@ -22,6 +24,10 @@ interface IGuessOurBlock {
     event FeeUpdated(FeeStructure fee);
     event GroupSizeUpdated(uint32 groupSize);
     event ErrorBlockAlreadyCompleted(uint32 blockId);
+    event DripVaultUpdated(address indexed dripVault);
+    event DripVaultMigrationStarted();
+    event DripVaultMigrationCompleted();
+    event DripVaultIsPermanentlySet();
 
     struct BlockMetadata {
         uint128 winningLot;

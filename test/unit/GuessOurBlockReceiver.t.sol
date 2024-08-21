@@ -7,6 +7,7 @@ import { Origin } from "@layerzerolabs/lz-evm-oapp-v2/contracts/oapp/OApp.sol";
 import { Math } from "@openzeppelin/contracts/utils/math/Math.sol";
 import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
 import { FailOnReceive } from "test/mock/contract/FailOnReceive.t.sol";
+import { IDripVault } from "src/dripVaults/IDripVault.sol";
 
 contract GuessOurBlockReceiverTest is BaseTest {
     uint128 private constant COST = 0.025 ether;
@@ -21,6 +22,7 @@ contract GuessOurBlockReceiverTest is BaseTest {
     address private validator;
     address private treasury;
     address private mockLzEndpoint;
+    address private mockDripVault;
 
     IGuessOurBlock.FeeStructure DEFAULT_FEE =
         IGuessOurBlock.FeeStructure({ treasury: 200, validator: 300, nextRound: 1500 });
@@ -30,8 +32,12 @@ contract GuessOurBlockReceiverTest is BaseTest {
     function setUp() public pranking {
         prepareTest();
 
+        vm.mockCall(mockDripVault, abi.encodeWithSelector(IDripVault.getTotalDeposit.selector), abi.encode(0));
+        vm.mockCall(mockDripVault, abi.encodeWithSelector(IDripVault.withdraw.selector), abi.encode(true));
+        vm.mockCall(mockDripVault, abi.encodeWithSelector(IDripVault.deposit.selector), abi.encode(true));
+
         vm.mockCall(mockLzEndpoint, abi.encodeWithSignature("setDelegate(address)"), abi.encode(true));
-        underTest = new GuessOurBlockReceiverHarness(mockLzEndpoint, owner, treasury);
+        underTest = new GuessOurBlockReceiverHarness(mockLzEndpoint, owner, treasury, mockDripVault);
 
         vm.roll(OLDEST_BLOCK);
         skip(2 weeks);
@@ -44,13 +50,15 @@ contract GuessOurBlockReceiverTest is BaseTest {
         validator = generateAddress("Validator");
         treasury = generateAddress("Treasury");
         mockLzEndpoint = generateAddress("Lz Endpoint");
+        mockDripVault = generateAddress("Drip Vault");
     }
 
     function test_constructor_thenContractWellConfigured() external {
-        underTest = new GuessOurBlockReceiverHarness(mockLzEndpoint, owner, treasury);
+        underTest = new GuessOurBlockReceiverHarness(mockLzEndpoint, owner, treasury, mockDripVault);
 
         assertEq(underTest.owner(), owner);
         assertEq(underTest.treasury(), treasury);
+        assertEq(address(underTest.dripVault()), mockDripVault);
 
         assertEq(underTest.fullWeightCost(), COST);
         assertEq(abi.encode(underTest.getFeeStructure()), abi.encode(DEFAULT_FEE));
@@ -593,6 +601,63 @@ contract GuessOurBlockReceiverTest is BaseTest {
         assertEq(underTest.groupSize(), newGroupSize);
     }
 
+    function test_updateDripVault_asNonOwner_thenReverts() external prankAs(user_A) {
+        vm.expectRevert(abi.encodeWithSelector(Ownable.OwnableUnauthorizedAccount.selector, user_A));
+        underTest.updateDripVault(address(0));
+    }
+
+    function test_updateDripVault_whenDripVaultIsZero_thenReverts() external prankAs(owner) {
+        vm.expectRevert(IGuessOurBlock.DripVaultCannotBeZero.selector);
+        underTest.updateDripVault(address(0));
+    }
+
+    function test_updateDripVault_whenDripVaultIsPermanentlySet_thenReverts() external prankAs(owner) {
+        underTest.setPermanentlySetDripVault();
+
+        vm.expectRevert(IGuessOurBlock.CanNoLongerUpdateDripVault.selector);
+        underTest.updateDripVault(generateAddress());
+    }
+
+    function test_updateDripVault_thenUpdatesAndActiveMigration() external prankAs(owner) {
+        address newDripVault = generateAddress();
+
+        expectExactEmit();
+        emit IGuessOurBlock.DripVaultUpdated(newDripVault);
+        underTest.updateDripVault(newDripVault);
+
+        assertEq(address(underTest.dripVault()), newDripVault);
+        assertEq(underTest.isMigratingDripVault(), true);
+    }
+
+    function test_completeDripVaultMigration_asNonOwner_thenReverts() external prankAs(user_A) {
+        vm.expectRevert(abi.encodeWithSelector(Ownable.OwnableUnauthorizedAccount.selector, user_A));
+        underTest.completeDripVaultMigration();
+    }
+
+    function test_completeDripVaultMigration_thenUpdates() external prankAs(owner) {
+        underTest.updateDripVault(generateAddress());
+        assertEq(underTest.isMigratingDripVault(), true);
+
+        expectExactEmit();
+        emit IGuessOurBlock.DripVaultMigrationCompleted();
+        underTest.completeDripVaultMigration();
+
+        assertEq(underTest.isMigratingDripVault(), false);
+    }
+
+    function test_setPermanentlySetDripVault_asNonOwner_thenReverts() external prankAs(user_A) {
+        vm.expectRevert(abi.encodeWithSelector(Ownable.OwnableUnauthorizedAccount.selector, user_A));
+        underTest.setPermanentlySetDripVault();
+    }
+
+    function test_setPermanentlySetDripVault_thenUpdates() external prankAs(owner) {
+        expectExactEmit();
+        emit IGuessOurBlock.DripVaultIsPermanentlySet();
+        underTest.setPermanentlySetDripVault();
+
+        assertEq(underTest.permanentlySetDripVault(), true);
+    }
+
     function test_getLatestTail_thenReturnsLatestTail() external {
         vm.roll(10_087);
         assertEq(underTest.getLatestTail(), 17_300);
@@ -616,8 +681,8 @@ contract GuessOurBlockReceiverTest is BaseTest {
 contract GuessOurBlockReceiverHarness is GuessOurBlockReceiver {
     bytes32 public constant MOCKED_GUID = keccak256("HelloWorld");
 
-    constructor(address _lzEndpoint, address _owner, address _treasury)
-        GuessOurBlockReceiver(_lzEndpoint, _owner, _treasury)
+    constructor(address _lzEndpoint, address _owner, address _treasury, address _dripVault)
+        GuessOurBlockReceiver(_lzEndpoint, _owner, _treasury, _dripVault)
     { }
 
     function exposed_lzReceiver(Origin calldata _origin, bytes calldata _message) external {

@@ -3,17 +3,21 @@ pragma solidity ^0.8.0;
 
 import { IGuessOurBlock } from "./IGuessOurBlock.sol";
 import { Math } from "@openzeppelin/contracts/utils/math/Math.sol";
+import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
 
 import { OAppReceiver } from "@layerzerolabs/lz-evm-oapp-v2/contracts/oapp/OAppReceiver.sol";
 import { OAppCore, Origin } from "@layerzerolabs/lz-evm-oapp-v2/contracts/oapp/OApp.sol";
-import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
 
-contract GuessOurBlockReceiver is IGuessOurBlock, OAppReceiver {
+import { IDripVault } from "src/dripVaults/IDripVault.sol";
+
+contract GuessOurBlockReceiver is IGuessOurBlock, Ownable, OAppReceiver {
     uint32 public constant MAX_BPS = 10_000;
     uint128 public constant TOO_LOW_BALANCE = 0.1e18;
 
     FeeStructure private feeBps;
     address public treasury;
+    IDripVault public dripVault;
+
     uint128 public fullWeightCost;
     uint128 public lot;
     uint32 public groupSize;
@@ -26,7 +30,15 @@ contract GuessOurBlockReceiver is IGuessOurBlock, OAppReceiver {
     uint32 public nextRoundStart;
     uint32 public minimumBlockAge;
 
-    constructor(address _lzEndpoint, address _owner, address _treasury) OAppCore(_lzEndpoint, _owner) Ownable(_owner) {
+    bool public isMigratingDripVault;
+    bool public permanentlySetDripVault;
+
+    constructor(address _lzEndpoint, address _owner, address _treasury, address _dripVault)
+        OAppCore(_lzEndpoint, _owner)
+        Ownable(_owner)
+    {
+        if (_dripVault == address(0)) revert DripVaultCannotBeZero();
+
         treasury = _treasury;
         fullWeightCost = 0.025 ether;
         groupSize = 100;
@@ -35,6 +47,7 @@ contract GuessOurBlockReceiver is IGuessOurBlock, OAppReceiver {
         minimumBlockAge = 7200;
         pauseRoundTimer = 1 weeks;
         nextRoundStart = uint32(block.timestamp) + pauseRoundTimer;
+        dripVault = IDripVault(_dripVault);
     }
 
     /// @inheritdoc IGuessOurBlock
@@ -209,6 +222,36 @@ contract GuessOurBlockReceiver is IGuessOurBlock, OAppReceiver {
     function updateGroupSize(uint32 _groupSize) external onlyOwner {
         groupSize = _groupSize;
         emit GroupSizeUpdated(_groupSize);
+    }
+
+    /**
+     * @notice Update the drip vault address. Due of some drip vaults might contains withdrawal delay, we are sending
+     * the fund to the treasury first.
+     * @dev If the community doesn't like it and are fine with the current drip vault, they can vote to remove this
+     * function.
+     */
+    function updateDripVault(address _dripVault) external onlyOwner {
+        if (permanentlySetDripVault) revert CanNoLongerUpdateDripVault();
+        if (_dripVault == address(0)) revert DripVaultCannotBeZero();
+
+        uint256 totalDeposit = dripVault.getTotalDeposit();
+        dripVault.withdraw(treasury, totalDeposit);
+
+        dripVault = IDripVault(_dripVault);
+        isMigratingDripVault = true;
+
+        emit DripVaultUpdated(_dripVault);
+        emit DripVaultMigrationStarted();
+    }
+
+    function completeDripVaultMigration() external onlyOwner {
+        isMigratingDripVault = false;
+        emit DripVaultMigrationCompleted();
+    }
+
+    function setPermanentlySetDripVault() external onlyOwner {
+        permanentlySetDripVault = true;
+        emit DripVaultIsPermanentlySet();
     }
 
     /// @inheritdoc IGuessOurBlock
