@@ -9,8 +9,6 @@ interface IGuessOurBlock {
     error NoReward();
     error RoundNotStarted();
     error ExceedBPSMaximum();
-    error FailedToSendETH();
-    error NoFailedETHPending();
     error InvalidTailBlockNumber();
     error CanNoLongerUpdateDripVault();
     error DripVaultCannotBeZero();
@@ -75,11 +73,6 @@ interface IGuessOurBlock {
     function claim(uint32 _blockTailNumber) external returns (uint128 toUser_);
 
     /**
-     * @notice If the system failed to send ETH, you can retry the transaction with this function
-     */
-    function retryNativeSend() external;
-
-    /**
      * @notice Donate ETH to the contract to increase the lot reward
      * @dev There is no advantage to donate. It's just to increase the lot reward
      */
@@ -109,12 +102,6 @@ interface IGuessOurBlock {
      * @param _blockId The block id
      */
     function getBlockData(uint32 _blockId) external view returns (BlockMetadata memory);
-
-    /**
-     * @notice Get the failed native of a user
-     * @param _user The address of the user
-     */
-    function getFailedNative(address _user) external view returns (uint128);
 
     /**
      * @notice Get the latest, valid, tail block number

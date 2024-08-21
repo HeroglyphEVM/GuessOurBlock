@@ -24,7 +24,6 @@ contract GuessOurBlockReceiver is IGuessOurBlock, Ownable, OAppReceiver {
 
     mapping(uint32 blockId => BlockMetadata) private blockDatas;
     mapping(address user => mapping(uint32 blockId => BlockAction)) private actions;
-    mapping(address wallet => uint128) private failedNativeSend;
 
     uint32 public pauseRoundTimer;
     uint32 public nextRoundStart;
@@ -151,7 +150,7 @@ contract GuessOurBlockReceiver is IGuessOurBlock, Ownable, OAppReceiver {
 
         if (cachedFee.validator != 0 && validator != address(0)) {
             winningLot -= validatorTax;
-            dripVault.withdraw(treasury, treasuryTax);
+            dripVault.withdraw(validator, validatorTax);
         }
 
         if (cachedFee.treasury != 0) {
@@ -178,17 +177,6 @@ contract GuessOurBlockReceiver is IGuessOurBlock, Ownable, OAppReceiver {
         emit Claimed(msg.sender, _blockTailNumber, toUser_);
 
         return toUser_;
-    }
-
-    /// @inheritdoc IGuessOurBlock
-    function retryNativeSend() external override {
-        uint128 pending = failedNativeSend[msg.sender];
-        if (pending == 0) revert NoFailedETHPending();
-
-        failedNativeSend[msg.sender] = 0;
-
-        (bool success,) = msg.sender.call{ value: pending }("");
-        if (!success) revert FailedToSendETH();
     }
 
     /// @inheritdoc IGuessOurBlock
@@ -281,11 +269,6 @@ contract GuessOurBlockReceiver is IGuessOurBlock, Ownable, OAppReceiver {
     /// @inheritdoc IGuessOurBlock
     function getBlockData(uint32 _blockId) external view override returns (BlockMetadata memory) {
         return blockDatas[_blockId];
-    }
-
-    /// @inheritdoc IGuessOurBlock
-    function getFailedNative(address _user) external view override returns (uint128) {
-        return failedNativeSend[_user];
     }
 
     function getLatestTail() external view override returns (uint32 latestTailBlock_) {

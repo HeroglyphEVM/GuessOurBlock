@@ -378,11 +378,16 @@ contract GuessOurBlockReceiverTest is BaseTest {
         underTest.guess{ value: COST }(guessBlock);
         underTest.donate{ value: donate }();
 
+        vm.expectCall(
+            mockDripVault, abi.encodeWithSelector(IDripVault.withdraw.selector, validator, expectedValidatorTax)
+        );
+        vm.expectCall(
+            mockDripVault, abi.encodeWithSelector(IDripVault.withdraw.selector, treasury, expectedTreasuryTax)
+        );
+
         underTest.exposed_lzReceiver(generateOrigin(), abi.encode(winningBlock, validator));
 
         assertEq(underTest.lot(), expectedNextRound);
-        assertEq(treasury.balance, expectedTreasuryTax);
-        assertEq(validator.balance, expectedValidatorTax);
         assertEq(
             underTest.getBlockData(guessBlock).winningLot,
             reward - (expectedTreasuryTax + expectedValidatorTax + expectedNextRound)
@@ -455,71 +460,19 @@ contract GuessOurBlockReceiverTest is BaseTest {
         changePrank(user_A);
         expectExactEmit();
         emit IGuessOurBlock.Claimed(user_A, winningBlock, userAPot);
+
+        vm.expectCall(mockDripVault, abi.encodeWithSelector(IDripVault.withdraw.selector, user_A, userAPot));
         underTest.claim(winningBlock);
 
         changePrank(user_B);
         expectExactEmit();
         emit IGuessOurBlock.Claimed(user_B, winningBlock, userBPot);
+
+        vm.expectCall(mockDripVault, abi.encodeWithSelector(IDripVault.withdraw.selector, user_B, userBPot));
         underTest.claim(winningBlock);
 
-        assertEq(user_A.balance - userBalanceABefore, userAPot);
-        assertEq(user_B.balance - userBalanceBBefore, userBPot);
         assertEq(underTest.getPendingReward(user_A, winningBlock), 0);
         assertEq(underTest.getPendingReward(user_B, winningBlock), 0);
-    }
-
-    function test_sendNative_whenFailed_thenReverts() external {
-        uint128 sending = 28.32e18;
-        vm.deal(address(underTest), sending);
-
-        address errorWallet = address(new FailOnReceive());
-
-        underTest.exposed_sendNative(errorWallet, sending);
-        assertEq(underTest.getFailedNative(errorWallet), sending);
-    }
-
-    function test_sendNative_thenSends() external {
-        uint128 sending = 28.32e18;
-        vm.deal(address(underTest), sending);
-
-        address to = generateAddress();
-
-        underTest.exposed_sendNative(to, sending);
-        assertEq(to.balance, sending);
-    }
-
-    function test_retryNativeSend_whenNothing_thenReverts() external prankAs(user_A) {
-        vm.expectRevert(IGuessOurBlock.NoFailedETHPending.selector);
-        underTest.retryNativeSend();
-    }
-
-    function test_retryNativeSend_whenFailingSendingEth_thenReverts() external {
-        uint128 sending = 28.32e18;
-        vm.deal(address(underTest), sending);
-
-        address errorWallet = address(new FailOnReceive());
-
-        underTest.exposed_sendNative(errorWallet, sending);
-
-        vm.expectRevert(IGuessOurBlock.FailedToSendETH.selector);
-
-        vm.prank(errorWallet);
-        underTest.retryNativeSend();
-    }
-
-    function test_retryNativeSend_thenSends() external {
-        uint128 sending = 28.32e18;
-        vm.deal(address(underTest), sending);
-
-        address to = address(new FailOnReceive());
-        underTest.exposed_sendNative(to, sending);
-
-        vm.etch(to, "");
-
-        vm.prank(to);
-        underTest.retryNativeSend();
-
-        assertEq(to.balance, sending);
     }
 
     function test_donate_thenUpdatesLot() external prankAs(user_A) {
@@ -687,9 +640,5 @@ contract GuessOurBlockReceiverHarness is GuessOurBlockReceiver {
 
     function exposed_lzReceiver(Origin calldata _origin, bytes calldata _message) external {
         _lzReceive(_origin, MOCKED_GUID, _message, address(this), _message);
-    }
-
-    function exposed_sendNative(address _to, uint128 _amount) external {
-        _sendNative(_to, _amount);
     }
 }

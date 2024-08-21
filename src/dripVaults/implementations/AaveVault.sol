@@ -54,6 +54,10 @@ contract AaveVault is BaseDripVault {
 
         aaveV3Pool.supply(inAsset, totalDeposit - _amount, address(this), 0);
 
+        if (isWETH) {
+            IWETH(inAsset).withdraw(_amount + interest);
+        }
+
         _transfer(address(0), rateReceiver, interest);
         _transfer(address(0), _to, _amount);
     }
