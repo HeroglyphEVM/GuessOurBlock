@@ -53,6 +53,7 @@ contract GuessOurBlockReceiver is IGuessOurBlock, Ownable, OAppReceiver {
     /// @inheritdoc IGuessOurBlock
     function guess(uint32 _blockNumber) external payable override {
         _guess(_blockNumber, uint128(msg.value));
+        dripVault.deposit{ value: msg.value }(msg.value);
     }
 
     /// @inheritdoc IGuessOurBlock
@@ -73,6 +74,7 @@ contract GuessOurBlockReceiver is IGuessOurBlock, Ownable, OAppReceiver {
         }
 
         if (msg.value != totalCost || totalCost == 0) revert InvalidAmount();
+        dripVault.deposit{ value: msg.value }(msg.value);
     }
 
     function _guess(uint32 _tailBlockNumber, uint128 _nativeSent) internal {
@@ -149,12 +151,12 @@ contract GuessOurBlockReceiver is IGuessOurBlock, Ownable, OAppReceiver {
 
         if (cachedFee.validator != 0 && validator != address(0)) {
             winningLot -= validatorTax;
-            _sendNative(validator, validatorTax);
+            dripVault.withdraw(treasury, treasuryTax);
         }
 
         if (cachedFee.treasury != 0) {
             winningLot -= treasuryTax;
-            _sendNative(treasury, treasuryTax);
+            dripVault.withdraw(treasury, treasuryTax);
         }
 
         blockMetadata.winningLot = winningLot;
@@ -171,18 +173,11 @@ contract GuessOurBlockReceiver is IGuessOurBlock, Ownable, OAppReceiver {
         toUser_ = _getSanitizedUserWinnings(data.winningLot, action.guessWeight, data.totalGuessWeight);
         if (toUser_ == 0) revert NoReward();
 
-        _sendNative(msg.sender, toUser_);
+        dripVault.withdraw(msg.sender, toUser_);
+
         emit Claimed(msg.sender, _blockTailNumber, toUser_);
 
         return toUser_;
-    }
-
-    function _sendNative(address _to, uint128 _amount) internal {
-        (bool success,) = _to.call{ value: _amount }("");
-
-        if (!success) {
-            failedNativeSend[_to] += _amount;
-        }
     }
 
     /// @inheritdoc IGuessOurBlock

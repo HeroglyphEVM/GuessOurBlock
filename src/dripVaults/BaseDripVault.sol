@@ -41,6 +41,8 @@ abstract contract BaseDripVault is IDripVault, Ownable {
     function _beforeWithdrawal(address _to, uint256 _amount) internal virtual;
 
     function _transfer(address _asset, address _to, uint256 _amount) internal {
+        if (_amount == 0) return;
+
         if (_asset == address(0)) {
             (bool success,) = _to.call{ value: _amount }("");
             if (!success) revert FailedToSendETH();
