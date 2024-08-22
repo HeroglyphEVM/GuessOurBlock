@@ -25,8 +25,6 @@ contract GuessOurBlockReceiver is IGuessOurBlock, Ownable, OAppReceiver {
     mapping(uint32 blockId => BlockMetadata) private blockDatas;
     mapping(address user => mapping(uint32 blockId => BlockAction)) private actions;
 
-    uint32 public pauseRoundTimer;
-    uint32 public nextRoundStart;
     uint32 public minimumBlockAge;
 
     bool public isMigratingDripVault;
@@ -44,8 +42,6 @@ contract GuessOurBlockReceiver is IGuessOurBlock, Ownable, OAppReceiver {
         feeBps = FeeStructure({ treasury: 200, validator: 300, nextRound: 1500 });
 
         minimumBlockAge = 7200;
-        pauseRoundTimer = 1 weeks;
-        nextRoundStart = uint32(block.timestamp) + pauseRoundTimer;
         dripVault = IDripVault(_dripVault);
     }
 
@@ -78,7 +74,6 @@ contract GuessOurBlockReceiver is IGuessOurBlock, Ownable, OAppReceiver {
 
     function _guess(uint32 _tailBlockNumber, uint128 _nativeSent) internal {
         if (_nativeSent == 0) revert InvalidAmount();
-        if (nextRoundStart > block.timestamp) revert RoundNotStarted();
         if (!_isValidTailBlockNumber(_tailBlockNumber)) revert InvalidTailBlockNumber();
 
         //We estimated the timestamp, which will be inaccurate, but we don't need it to be.
@@ -122,7 +117,6 @@ contract GuessOurBlockReceiver is IGuessOurBlock, Ownable, OAppReceiver {
             return;
         }
 
-        nextRoundStart = uint32(block.timestamp) + pauseRoundTimer;
         blockMetadata.isCompleted = true;
 
         emit BlockWon(_guid, blockNumberTail, winningLot);
@@ -191,11 +185,6 @@ contract GuessOurBlockReceiver is IGuessOurBlock, Ownable, OAppReceiver {
         if (_fee.treasury + _fee.validator + _fee.nextRound > MAX_BPS) revert ExceedBPSMaximum();
 
         emit FeeUpdated(_fee);
-    }
-
-    function updatePauseTimer(uint32 _pauseTimerInSecond) external onlyOwner {
-        pauseRoundTimer = _pauseTimerInSecond;
-        emit RoundPauseTimerUpdated(_pauseTimerInSecond);
     }
 
     function updateMinimumBlockAge(uint32 _minimumBlockAgeInBlock) external onlyOwner {

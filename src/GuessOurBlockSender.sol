@@ -15,7 +15,7 @@ contract GuessOurBlockSender is TickerOperator, OAppSender {
 
     uint32 public lzGasLimit;
     uint32 public immutable lzEndpointId;
-    uint32 public latestMintedBlock = 0;
+    uint32 public latestMintedBlock;
     bytes public defaultLzOption;
 
     constructor(uint32 _lzEndpointId, address _lzEndpoint, address _heroglyphRelay, address _owner)
@@ -32,6 +32,7 @@ contract GuessOurBlockSender is TickerOperator, OAppSender {
         override
         onlyRelay
     {
+        // return instead a revert for gas optimization on Heroglyph side.
         if (latestMintedBlock > _blockNumber) return;
         latestMintedBlock = _blockNumber;
 

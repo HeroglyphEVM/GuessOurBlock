@@ -70,14 +70,6 @@ contract GuessOurBlockReceiverTest is BaseTest {
         underTest.guess{ value: 0 }(latestTailBlock);
     }
 
-    function test_gest_whenRoundNotStarted_thenReverts() external prankAs(user_A) {
-        vm.warp(underTest.nextRoundStart() - 1);
-        uint32 latestTailBlock = underTest.getLatestTail();
-
-        vm.expectRevert(IGuessOurBlock.RoundNotStarted.selector);
-        underTest.guess{ value: COST }(latestTailBlock);
-    }
-
     function test_guess_givenOldBlock_thenReverts() external prankAs(user_A) {
         vm.roll(OLDEST_BLOCK);
         uint32 latestTailBlock = underTest.getLatestTail();
@@ -285,14 +277,11 @@ contract GuessOurBlockReceiverTest is BaseTest {
 
         underTest.exposed_lzReceiver(generateOrigin(), abi.encode(winningBlock, validator));
 
-        uint32 nextRound = underTest.nextRoundStart();
-        skip(30);
+        skip(10 weeks);
 
         expectExactEmit();
         emit IGuessOurBlock.ErrorBlockAlreadyCompleted(sanitizedBlock);
         underTest.exposed_lzReceiver(generateOrigin(), abi.encode(winningBlock, validator));
-
-        assertEq(underTest.nextRoundStart(), nextRound);
     }
 
     function test_lzReceive_whenBlockWins_thenCallEvents() external prankAs(user_A) {
@@ -506,21 +495,6 @@ contract GuessOurBlockReceiverTest is BaseTest {
         underTest.updateFee(newFee);
 
         assertEq(abi.encode(underTest.getFeeStructure()), abi.encode(newFee));
-    }
-
-    function test_updatePauseTimer_asNonOwner_thenReverts() external prankAs(user_A) {
-        vm.expectRevert(abi.encodeWithSelector(Ownable.OwnableUnauthorizedAccount.selector, user_A));
-        underTest.updatePauseTimer(1);
-    }
-
-    function test_updatePauseTimer_thenUpdates() external prankAs(owner) {
-        uint32 newPauseTimer = 100;
-
-        expectExactEmit();
-        emit IGuessOurBlock.RoundPauseTimerUpdated(newPauseTimer);
-        underTest.updatePauseTimer(newPauseTimer);
-
-        assertEq(underTest.pauseRoundTimer(), newPauseTimer);
     }
 
     function test_updateMinimumBlockAge_asNonOwner_thenReverts() external prankAs(user_A) {
