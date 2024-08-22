@@ -5,7 +5,6 @@ import { BaseDripVault } from "../BaseDripVault.sol";
 
 import { IERC4626 } from "@openzeppelin/contracts/interfaces/IERC4626.sol";
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "forge-std/console.sol";
 
 interface IApxETH is IERC4626 {
     function pirexEth() external view returns (address);
