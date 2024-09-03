@@ -3,77 +3,96 @@ pragma solidity ^0.8.0;
 
 import { IGuessOurBlock } from "./IGuessOurBlock.sol";
 import { Math } from "@openzeppelin/contracts/utils/math/Math.sol";
+import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
 
 import { OAppReceiver } from "@layerzerolabs/lz-evm-oapp-v2/contracts/oapp/OAppReceiver.sol";
 import { OAppCore, Origin } from "@layerzerolabs/lz-evm-oapp-v2/contracts/oapp/OApp.sol";
-import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
 
-contract GuessOurBlockReceiver is IGuessOurBlock, OAppReceiver {
-    uint32 public constant NATIVE_SEND_GAS_LIMIT = 32_000;
+import { IDripVault } from "src/dripVaults/IDripVault.sol";
+
+contract GuessOurBlockReceiver is IGuessOurBlock, Ownable, OAppReceiver {
     uint32 public constant MAX_BPS = 10_000;
     uint128 public constant TOO_LOW_BALANCE = 0.1e18;
 
     FeeStructure private feeBps;
     address public treasury;
-    uint128 public cost;
+    IDripVault public dripVault;
+
+    uint128 public fullWeightCost;
     uint128 public lot;
+    uint32 public groupSize;
 
     mapping(uint32 blockId => BlockMetadata) private blockDatas;
     mapping(address user => mapping(uint32 blockId => BlockAction)) private actions;
-    mapping(address wallet => uint128) private failedNativeSend;
 
-    uint32 public pauseRoundTimer;
-    uint32 public nextRoundStart;
     uint32 public minimumBlockAge;
 
-    constructor(address _lzEndpoint, address _owner, address _treasury) OAppCore(_lzEndpoint, _owner) Ownable(_owner) {
+    bool public isMigratingDripVault;
+    bool public permanentlySetDripVault;
+
+    constructor(address _lzEndpoint, address _owner, address _treasury, address _dripVault)
+        OAppCore(_lzEndpoint, _owner)
+        Ownable(_owner)
+    {
+        if (_dripVault == address(0)) revert DripVaultCannotBeZero();
+
         treasury = _treasury;
-        cost = 0.025 ether;
+        fullWeightCost = 0.025 ether;
+        groupSize = 100;
         feeBps = FeeStructure({ treasury: 200, validator: 300, nextRound: 1500 });
 
         minimumBlockAge = 7200;
-        pauseRoundTimer = 1 weeks;
-        nextRoundStart = uint32(block.timestamp) + pauseRoundTimer;
+        dripVault = IDripVault(_dripVault);
     }
 
     /// @inheritdoc IGuessOurBlock
-    function guess(uint32 _blockNumber, uint32 _guessAmount) external payable override {
-        if (msg.value != (cost * _guessAmount)) revert InvalidAmount();
-        _guess(_blockNumber, _guessAmount);
+    function guess(uint32 _blockNumber) external payable override {
+        _guess(_blockNumber, uint128(msg.value));
+        dripVault.deposit{ value: msg.value }();
     }
 
     /// @inheritdoc IGuessOurBlock
-    function multiGuess(uint32[] calldata _blockNumbers, uint32[] calldata _guessAmounts) external payable override {
-        if (_blockNumbers.length != _guessAmounts.length) revert MismatchArrays();
+    function multiGuess(uint32[] calldata _tailBlockNumbers, uint128[] calldata _allocatedEthByGroups)
+        external
+        payable
+        override
+    {
+        if (_tailBlockNumbers.length != _allocatedEthByGroups.length) revert MismatchArrays();
 
-        uint256 totalCost = 0;
-        uint32 guesses;
+        uint128 totalCost;
+        uint128 allocatedEth;
 
-        for (uint256 i = 0; i < _blockNumbers.length; ++i) {
-            guesses = _guessAmounts[i];
-            totalCost += guesses * cost;
-            _guess(_blockNumbers[i], guesses);
+        for (uint256 i = 0; i < _tailBlockNumbers.length; ++i) {
+            allocatedEth = _allocatedEthByGroups[i];
+            totalCost += allocatedEth;
+            _guess(_tailBlockNumbers[i], allocatedEth);
         }
 
         if (msg.value != totalCost || totalCost == 0) revert InvalidAmount();
+        dripVault.deposit{ value: msg.value }();
     }
 
-    function _guess(uint32 _blockNumber, uint32 _guessAmount) internal {
-        if (_guessAmount == 0) revert InvalidGuessAmount();
-        if (nextRoundStart > block.timestamp) revert RoundNotStarted();
+    function _guess(uint32 _tailBlockNumber, uint128 _nativeSent) internal {
+        if (_nativeSent == 0) revert InvalidAmount();
+        if (!_isValidTailBlockNumber(_tailBlockNumber)) revert InvalidTailBlockNumber();
 
         //We estimated the timestamp, which will be inaccurate, but we don't need it to be.
-        if (block.number > _blockNumber || _blockNumber - block.number < minimumBlockAge) {
+        if (block.number > _tailBlockNumber || _tailBlockNumber - block.number < minimumBlockAge) {
             revert BlockTooSoon();
         }
 
-        BlockAction storage action = actions[msg.sender][_blockNumber];
-        action.voted += _guessAmount;
+        BlockAction storage action = actions[msg.sender][_tailBlockNumber];
+        uint128 guessWeight = uint128(Math.mulDiv(_nativeSent, 1e18, fullWeightCost));
+        action.guessWeight += guessWeight;
 
-        blockDatas[_blockNumber].totalGuess += _guessAmount;
-        lot += uint128(cost * _guessAmount);
+        blockDatas[_tailBlockNumber].totalGuessWeight += guessWeight;
+        lot += uint128(_nativeSent);
 
-        emit Guessed(msg.sender, _blockNumber, _guessAmount);
+        emit Guessed(msg.sender, _tailBlockNumber, guessWeight, _nativeSent);
+    }
+
+    function _isValidTailBlockNumber(uint32 _tailBlockNumber) internal view returns (bool) {
+        return _tailBlockNumber % groupSize == 0;
     }
 
     function _lzReceive(
@@ -88,81 +107,76 @@ contract GuessOurBlockReceiver is IGuessOurBlock, OAppReceiver {
         lot = 0;
 
         (uint32 blockNumber, address validator) = abi.decode(_message, (uint32, address));
-        BlockMetadata storage blockMetadata = blockDatas[blockNumber];
 
-        if (blockMetadata.isCompleted) revert BlockAlreadyCompleted();
+        uint32 blockNumberTail = blockNumber - (blockNumber % groupSize);
+        BlockMetadata storage blockMetadata = blockDatas[blockNumberTail];
 
-        nextRoundStart = uint32(block.timestamp) + pauseRoundTimer;
+        // Simply process the message to avoid LZ blockage.
+        if (blockMetadata.isCompleted) {
+            emit ErrorBlockAlreadyCompleted(blockNumberTail);
+            return;
+        }
+
         blockMetadata.isCompleted = true;
 
-        emit BlockWon(_guid, blockNumber, winningLot);
+        emit BlockWon(_guid, blockNumberTail, winningLot);
+
         if (winningLot == 0) return;
+        if (blockMetadata.totalGuessWeight == 0) {
+            lot = winningLot;
+            return;
+        }
+
+        if (blockMetadata.totalGuessWeight < 1e18) {
+            uint128 reducedLot = uint128(Math.mulDiv(winningLot, blockMetadata.totalGuessWeight, 1e18));
+            lot = winningLot - reducedLot;
+            winningLot = reducedLot;
+        }
 
         uint128 treasuryTax = uint128(Math.mulDiv(winningLot, cachedFee.treasury, MAX_BPS));
         uint128 validatorTax = uint128(Math.mulDiv(winningLot, cachedFee.validator, MAX_BPS));
         uint128 nextRound = uint128(Math.mulDiv(winningLot, cachedFee.nextRound, MAX_BPS));
 
         if (nextRound > TOO_LOW_BALANCE) {
-            lot = nextRound;
+            lot += nextRound;
             winningLot -= nextRound;
         }
 
         if (cachedFee.validator != 0 && validator != address(0)) {
             winningLot -= validatorTax;
-            _sendNative(validator, validatorTax);
+            dripVault.withdraw(validator, validatorTax);
         }
 
         if (cachedFee.treasury != 0) {
             winningLot -= treasuryTax;
-            _sendNative(treasury, treasuryTax);
+            dripVault.withdraw(treasury, treasuryTax);
         }
 
-        if (blockMetadata.totalGuess == 0) {
-            lot += winningLot;
-        } else {
-            blockMetadata.winningLot = winningLot;
-        }
+        blockMetadata.winningLot = winningLot;
     }
 
     /// @inheritdoc IGuessOurBlock
-    function claim(uint32 _blockId) external override {
-        BlockAction storage action = actions[msg.sender][_blockId];
-        BlockMetadata memory data = blockDatas[_blockId];
+    function claim(uint32 _blockTailNumber) external override returns (uint128 toUser_) {
+        BlockAction storage action = actions[msg.sender][_blockTailNumber];
+        BlockMetadata memory data = blockDatas[_blockTailNumber];
 
-        if (action.voted == 0) revert NotVoted();
         if (action.claimed) revert AlreadyClaimed();
-
-        uint128 winningPot = uint128(data.winningLot / data.totalGuess * action.voted);
-        if (winningPot == 0) revert NoReward();
-
         action.claimed = true;
 
-        _sendNative(msg.sender, winningPot);
-        emit Claimed(msg.sender, _blockId, winningPot);
-    }
+        toUser_ = _getSanitizedUserWinnings(data.winningLot, action.guessWeight, data.totalGuessWeight);
+        if (toUser_ == 0) revert NoReward();
 
-    function _sendNative(address _to, uint128 _amount) internal {
-        (bool success,) = _to.call{ value: _amount, gas: NATIVE_SEND_GAS_LIMIT }("");
+        dripVault.withdraw(msg.sender, toUser_);
 
-        if (!success) {
-            failedNativeSend[_to] += _amount;
-        }
-    }
+        emit Claimed(msg.sender, _blockTailNumber, toUser_);
 
-    /// @inheritdoc IGuessOurBlock
-    function retryNativeSend() external override {
-        uint128 pending = failedNativeSend[msg.sender];
-        if (pending == 0) revert NoFailedETHPending();
-
-        failedNativeSend[msg.sender] = 0;
-
-        (bool success,) = msg.sender.call{ value: pending }("");
-        if (!success) revert FailedToSendETH();
+        return toUser_;
     }
 
     /// @inheritdoc IGuessOurBlock
     function donate() external payable override {
         lot += uint128(msg.value);
+        dripVault.deposit{ value: msg.value }();
         emit Donated(msg.sender, msg.value);
     }
 
@@ -173,25 +187,63 @@ contract GuessOurBlockReceiver is IGuessOurBlock, OAppReceiver {
         emit FeeUpdated(_fee);
     }
 
-    function updatePauseTimer(uint32 _pauseTimerInSecond) external onlyOwner {
-        pauseRoundTimer = _pauseTimerInSecond;
-        emit RoundPauseTimerUpdated(_pauseTimerInSecond);
-    }
-
     function updateMinimumBlockAge(uint32 _minimumBlockAgeInBlock) external onlyOwner {
         minimumBlockAge = _minimumBlockAgeInBlock;
         emit MinimumBlockAgeUpdated(_minimumBlockAgeInBlock);
     }
 
+    function updateGroupSize(uint32 _groupSize) external onlyOwner {
+        groupSize = _groupSize;
+        emit GroupSizeUpdated(_groupSize);
+    }
+
+    /**
+     * @notice Update the drip vault address. Due of some drip vaults might contains withdrawal delay, we are sending
+     * the fund to the treasury first.
+     * @dev If the community doesn't like it and are fine with the current drip vault, they can vote to remove this
+     * function.
+     */
+    function updateDripVault(address _dripVault) external onlyOwner {
+        if (permanentlySetDripVault) revert CanNoLongerUpdateDripVault();
+        if (_dripVault == address(0)) revert DripVaultCannotBeZero();
+
+        uint256 totalDeposit = dripVault.getTotalDeposit();
+        dripVault.withdraw(treasury, totalDeposit);
+
+        dripVault = IDripVault(_dripVault);
+        isMigratingDripVault = true;
+
+        emit DripVaultUpdated(_dripVault);
+        emit DripVaultMigrationStarted();
+    }
+
+    function completeDripVaultMigration() external onlyOwner {
+        isMigratingDripVault = false;
+        emit DripVaultMigrationCompleted();
+    }
+
+    function setPermanentlySetDripVault() external onlyOwner {
+        permanentlySetDripVault = true;
+        emit DripVaultIsPermanentlySet();
+    }
+
     /// @inheritdoc IGuessOurBlock
-    function getPendingReward(address _user, uint32 _blockId) external view override returns (uint256) {
+    function getPendingReward(address _user, uint32 _blockId) external view override returns (uint256 winning_) {
         BlockAction memory action = actions[_user][_blockId];
         BlockMetadata memory data = blockDatas[_blockId];
-        uint256 totalGuess = data.totalGuess;
 
-        if (action.voted == 0 || action.claimed || totalGuess == 0) return 0;
+        if (action.claimed) return 0;
 
-        return data.winningLot / totalGuess * action.voted;
+        return _getSanitizedUserWinnings(data.winningLot, action.guessWeight, data.totalGuessWeight);
+    }
+
+    function _getSanitizedUserWinnings(uint128 _winningLot, uint128 _userWeight, uint128 _totalGuessWeight)
+        internal
+        pure
+        returns (uint128 /*toUser_*/ )
+    {
+        if (_winningLot == 0 || _userWeight == 0 || _totalGuessWeight == 0) return 0;
+        return uint128(Math.mulDiv(_winningLot, _userWeight, _totalGuessWeight));
     }
 
     /// @inheritdoc IGuessOurBlock
@@ -209,8 +261,14 @@ contract GuessOurBlockReceiver is IGuessOurBlock, OAppReceiver {
         return blockDatas[_blockId];
     }
 
-    /// @inheritdoc IGuessOurBlock
-    function getFailedNative(address _user) external view override returns (uint128) {
-        return failedNativeSend[_user];
+    function getLatestTail() external view override returns (uint32 latestTailBlock_) {
+        uint32 latestBlock = uint32(block.number + minimumBlockAge);
+        latestTailBlock_ = latestBlock - (latestBlock % groupSize);
+
+        return latestTailBlock_ < block.number + minimumBlockAge ? latestTailBlock_ + groupSize : latestTailBlock_;
+    }
+
+    receive() external payable {
+        if (msg.sender != address(dripVault)) revert InvalidSender();
     }
 }

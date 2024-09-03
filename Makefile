@@ -11,8 +11,8 @@ update:; forge update
 remappings:; forge remappings > remappings.txt
 
 # commands
-coverage :; forge coverage 
-coverage-output :; forge coverage --report lcov
+coverage :; export FOUNDRY_PROFILE=unit && forge coverage 
+coverage-output :; export FOUNDRY_PROFILE=unit && forge coverage --report lcov
 build  :; forge build --force 
 clean  :; forge clean
 
@@ -25,7 +25,7 @@ snapshot :; forge snapshot $(EXTRA)
 snapshot-fork :; forge snapshot --snap .gas-snapshot-fork $(RPC) $(EXTRA)
 
 #Analytic Tools
-slither :; slither src/
+slither :; slither --config-file ./slither-config.json src/
 
-deploy :; export IS_SIMULATION=false && forge script $(SCRIPT_NAME) --rpc-url $(RPC) --sig "run(string)" $(NETWORK) --broadcast --verify -vvvv $(EXTRA)
-simulate-deploy :; export IS_SIMULATION=true && forge script $(SCRIPT_NAME) --rpc-url $(RPC) --sig "run(string)" $(NETWORK) -vvvv $(EXTRA)
+deploy :; forge script $(SCRIPT_NAME) --rpc-url $(RPC) --sig "run()" --broadcast --verify -vvvv $(EXTRA)
+simulate-deploy :; forge script $(SCRIPT_NAME) --rpc-url $(RPC) --sig "run()" -vvvv $(EXTRA)

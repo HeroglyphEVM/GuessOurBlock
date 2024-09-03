@@ -8,21 +8,17 @@ get_env_value() {
 script_directory="script/deploy"
 is_simulation=false
 
-# This is overkill since the forge script already checks for builds. 
-# However, I once encountered an issue where I deployed an old version of the build. 
-# Therefore, it is better to play it safe.
-forge build --force
-
-echo "is Simulation?"
-    select use_simulation in "yes" "no"; do
-        case $use_simulation in
-            yes ) is_simulation=true; break;;
-            no ) break;;
-        esac
-    done
+while true; do
+    echo "is Simulation?"
+        select use_simulation in "yes" "no"; do
+            case $use_simulation in
+                yes ) is_simulation=true; break;;
+                no ) is_simulation=false; break;;
+            esac
+        done
     echo
 
-while true; do
+
     RPC_URL="missing url" 
 
     #
@@ -56,6 +52,8 @@ while true; do
     #
     # Create missing json deployment file
     #
+    
+    mkdir -p "./deployment"
 
     file="./deployment/"$network".json"
 
@@ -71,11 +69,16 @@ while true; do
     # Select a script from ./script/deploy/
     #
 
-    files=("$script_directory"/*)
+    files=($(find "$script_directory"/ -type f))
 
-    echo "Select a script"
+    echo "Select a script:"
     select script_name in "${files[@]}"; do
-        break
+        if [[ -n "$script_name" ]]; then
+            echo "You selected: $script_name"
+            break
+        else
+            echo "Invalid selection, please try again."
+        fi
     done
     echo
 
@@ -103,9 +106,9 @@ while true; do
     #
 
     if $is_simulation; then
-        make simulate-deploy SCRIPT_NAME=$script_name RPC=$RPC_URL NETWORK=$network
+        make simulate-deploy SCRIPT_NAME=$script_name RPC=$RPC_URL
     else
-        make deploy SCRIPT_NAME=$script_name RPC=$RPC_URL NETWORK=$network
+        make deploy SCRIPT_NAME=$script_name RPC=$RPC_URL
     fi
 
     #
