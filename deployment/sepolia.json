@@ -1,0 +1,10 @@
+[
+  {
+    "contractAddress": "0xB4060a37d781F544E34311cD8B69E83D685Fd234",
+    "contractName": "MockVault"
+  },
+  {
+    "contractAddress": "0xe466Ea52DbbA422e7443575937C24405a7dA23D8",
+    "contractName": "GOBReceiver"
+  }
+]

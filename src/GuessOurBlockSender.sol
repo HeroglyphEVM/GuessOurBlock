@@ -14,15 +14,15 @@ contract GuessOurBlockSender is TickerOperator, OAppSender {
     event SendingWinningBlock(bytes32 indexed guid, uint32 indexed blockNumber, address indexed validator);
 
     uint32 public lzGasLimit;
-    uint32 public immutable lzEndpointId;
+    uint32 public immutable lzEndpointReceiverId;
     uint32 public latestMintedBlock;
     bytes public defaultLzOption;
 
-    constructor(uint32 _lzEndpointId, address _lzEndpoint, address _heroglyphRelay, address _owner)
+    constructor(uint32 _lzEndpointReceiverId, address _lzEndpoint, address _heroglyphRelay, address _owner)
         TickerOperator(_owner, _heroglyphRelay, address(0))
         OAppCore(_lzEndpoint, _owner)
     {
-        lzEndpointId = _lzEndpointId;
+        lzEndpointReceiverId = _lzEndpointReceiverId;
         lzGasLimit = 200_000;
         defaultLzOption = OptionsBuilder.newOptions().addExecutorLzReceiveOption(lzGasLimit, 0);
     }
@@ -38,8 +38,8 @@ contract GuessOurBlockSender is TickerOperator, OAppSender {
 
         bytes memory option = defaultLzOption;
         bytes memory payload = abi.encode(_blockNumber, _validatorWithdrawer);
-        MessagingFee memory fee = _quote(lzEndpointId, payload, option, false);
-        MessagingReceipt memory msgReceipt = _lzSend(lzEndpointId, payload, option, fee, payable(address(this)));
+        MessagingFee memory fee = _quote(lzEndpointReceiverId, payload, option, false);
+        MessagingReceipt memory msgReceipt = _lzSend(lzEndpointReceiverId, payload, option, fee, payable(address(this)));
 
         emit SendingWinningBlock(msgReceipt.guid, _blockNumber, _validatorWithdrawer);
 

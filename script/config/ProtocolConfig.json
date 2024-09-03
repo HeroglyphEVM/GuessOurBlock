@@ -1,0 +1,29 @@
+{
+    "arbitrum":
+    {
+        "01_owner": "0x888D768764A2E304215247F0bA3457cCb0f0ab4f",
+        "02_treasury": "0x888D768764A2E304215247F0bA3457cCb0f0ab4f",
+        "03_senderLzId": "30_110",
+        "04_receiverLzId": "30_101",
+        "05_senderLzEndpoint": "0x1a44076050125825900e736c501f859c50fE728c",
+        "06_receiverLzEndpoint": "0x1a44076050125825900e736c501f859c50fE728c"
+    },
+    "ethereum":
+    {
+ "01_owner": "0x888D768764A2E304215247F0bA3457cCb0f0ab4f",
+        "02_treasury": "0x888D768764A2E304215247F0bA3457cCb0f0ab4f",
+        "03_senderLzId": "30_110",
+        "04_receiverLzId": "30_101",
+        "05_senderLzEndpoint": "0x1a44076050125825900e736c501f859c50fE728c",
+        "06_receiverLzEndpoint": "0x1a44076050125825900e736c501f859c50fE728c"
+    },
+    "sepolia":
+    {
+         "01_owner": "0x0000000000000000000000000000000000000000",
+        "02_treasury": "0x0000000000000000000000000000000000000000",
+        "03_senderLzId": "0",
+        "04_receiverLzId": "40161",
+        "05_senderLzEndpoint": "0x6EDCE65403992e310A62460808c4b910D972f10f",
+        "06_receiverLzEndpoint": "0x6EDCE65403992e310A62460808c4b910D972f10f"
+    }
+}
