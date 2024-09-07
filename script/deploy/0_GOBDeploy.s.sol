@@ -80,7 +80,7 @@ contract GOBDeploy is BaseScript {
         }
 
         if (!gobExists) {
-            vm.broadcast(_getDeployerAddress());
+            vm.broadcast(_getDeployerPrivateKey());
             apxETHVault(payable(vault)).setGob(gobReceiver);
         }
     }
