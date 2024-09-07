@@ -72,6 +72,13 @@ contract GuessOurBlockReceiverTest is BaseTest {
 
     function test_guess_givenOldBlock_thenReverts() external prankAs(user_A) {
         vm.roll(OLDEST_BLOCK);
+
+        vm.expectRevert(IGuessOurBlock.BlockTooOld.selector);
+        underTest.guess{ value: COST }(100);
+    }
+
+    function test_guess_givenTooSoonBlock_thenReverts() external prankAs(user_A) {
+        vm.roll(OLDEST_BLOCK);
         uint32 latestTailBlock = underTest.getLatestTail();
 
         vm.expectRevert(IGuessOurBlock.BlockTooSoon.selector);

@@ -77,7 +77,10 @@ contract GuessOurBlockReceiver is IGuessOurBlock, Ownable, OAppReceiver {
         if (!_isValidTailBlockNumber(_tailBlockNumber)) revert InvalidTailBlockNumber();
 
         //We estimated the timestamp, which will be inaccurate, but we don't need it to be.
-        if (block.number > _tailBlockNumber || _tailBlockNumber - block.number < minimumBlockAge) {
+        if (block.number > _tailBlockNumber) {
+            revert BlockTooOld();
+        }
+        if (_tailBlockNumber - block.number < minimumBlockAge) {
             revert BlockTooSoon();
         }
 

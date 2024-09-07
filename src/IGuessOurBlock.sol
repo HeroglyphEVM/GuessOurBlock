@@ -4,6 +4,7 @@ pragma solidity ^0.8.0;
 interface IGuessOurBlock {
     error InvalidAmount();
     error BlockTooSoon();
+    error BlockTooOld();
     error MismatchArrays();
     error AlreadyClaimed();
     error NoReward();
