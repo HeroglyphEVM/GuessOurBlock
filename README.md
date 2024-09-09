@@ -13,5 +13,3 @@ With approximately 6.4 Heroglyph blocks per day and 7200 blocks in total, one gu
 
 ## How to Play
 Make guesses in multiples of 100 blocks. Choose an Ethereum block number and hope that one of the block producers is a Heroglyph validator with the ticker.
-
-![Guess Flow](docs/GuessFlow.png)
