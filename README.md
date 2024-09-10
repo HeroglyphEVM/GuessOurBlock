@@ -8,8 +8,8 @@ The Heroglyph Protocol lets validators run on-chain code using their Node's graf
 
 
 ## Winning Probability
-With approximately 6.4 Heroglyph blocks per day and 7200 blocks in total, one guess contains 100 blocks. Assuming all Heroglyph validators use the Hero3D ticker, your chance of winning is:
-#### $1-(71/72)^{6.4} *100 ≈ 8.7$%
+With approximately 6.4 Heroglyph blocks per day and 7200 blocks in total, one guess contains 10 blocks. Assuming all Heroglyph validators use the Hero3D ticker, your chance of winning is:
+#### $(1-(719/720)^{6.4}) *100 ≈ 0.89$%
 
 ## How to Play
-Make guesses in multiples of 100 blocks. Choose an Ethereum block number and hope that one of the block producers is a Heroglyph validator with the ticker.
+Make guesses in multiples of 10 blocks. Choose an Ethereum block number and hope that one of the block producers is a Heroglyph validator with the ticker.

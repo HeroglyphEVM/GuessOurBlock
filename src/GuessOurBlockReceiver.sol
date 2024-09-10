@@ -38,7 +38,7 @@ contract GuessOurBlockReceiver is IGuessOurBlock, Ownable, OAppReceiver {
 
         treasury = _treasury;
         fullWeightCost = 0.025 ether;
-        groupSize = 100;
+        groupSize = 10;
         feeBps = FeeStructure({ treasury: 200, validator: 300, nextRound: 1500 });
 
         minimumBlockAge = 7200;
