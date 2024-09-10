@@ -13,7 +13,7 @@ contract GuessOurBlockReceiverTest is BaseTest {
     uint32 private constant OLDEST_BLOCK = 392_813;
     uint32 private constant ONE_DAY_BLOCKS = 7200;
     uint32 public constant MAX_BPS = 10_000;
-    uint32 public constant GROUP_SIZE = 100;
+    uint32 public constant GROUP_SIZE = 10;
 
     address private owner;
     address private user_A;
@@ -592,14 +592,26 @@ contract GuessOurBlockReceiverTest is BaseTest {
     }
 
     function test_getLatestTail_thenReturnsLatestTail() external {
+        uint256 minimumBlockAge = underTest.minimumBlockAge();
         vm.roll(10_087);
-        assertEq(underTest.getLatestTail(), 17_300);
+
+        assertEq(underTest.getLatestTail(), getExpectedLatestTail(10_087, minimumBlockAge, underTest.groupSize()));
         vm.roll(10_088);
-        assertEq(underTest.getLatestTail(), 17_300);
+        assertEq(underTest.getLatestTail(), getExpectedLatestTail(10_088, minimumBlockAge, underTest.groupSize()));
         vm.roll(10_100);
-        assertEq(underTest.getLatestTail(), 17_300);
+        assertEq(underTest.getLatestTail(), getExpectedLatestTail(10_100, minimumBlockAge, underTest.groupSize()));
         vm.roll(10_101);
-        assertEq(underTest.getLatestTail(), 17_400);
+        assertEq(underTest.getLatestTail(), getExpectedLatestTail(10_101, minimumBlockAge, underTest.groupSize()));
+    }
+
+    function getExpectedLatestTail(uint256 _blockNumber, uint256 _minimumBlockAge, uint256 _groupSize)
+        private
+        pure
+        returns (uint256)
+    {
+        uint256 latestBlock = _blockNumber + _minimumBlockAge;
+        uint256 latestTailBlock = latestBlock - (latestBlock % _groupSize);
+        return latestTailBlock < _blockNumber + _minimumBlockAge ? latestTailBlock + _groupSize : latestTailBlock;
     }
 
     function generateOrigin() private view returns (Origin memory) {
