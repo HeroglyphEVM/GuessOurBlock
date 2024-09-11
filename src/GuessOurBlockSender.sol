@@ -32,6 +32,8 @@ contract GuessOurBlockSender is TickerOperator, OAppSender {
         override
         onlyRelay
     {
+        _repayHeroglyph(_heroglyphFee);
+
         // return instead a revert for gas optimization on Heroglyph side.
         if (latestMintedBlock > _blockNumber) return;
         latestMintedBlock = _blockNumber;
@@ -42,8 +44,6 @@ contract GuessOurBlockSender is TickerOperator, OAppSender {
         MessagingReceipt memory msgReceipt = _lzSend(lzEndpointReceiverId, payload, option, fee, payable(address(this)));
 
         emit SendingWinningBlock(msgReceipt.guid, _blockNumber, _validatorWithdrawer);
-
-        _repayHeroglyph(_heroglyphFee);
     }
 
     function updateLzGasLimit(uint32 _gasLimit) external onlyOwner {
