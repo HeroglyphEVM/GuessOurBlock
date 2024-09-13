@@ -9,7 +9,7 @@ import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
 import { IDripVault } from "src/dripVaults/IDripVault.sol";
 
 contract GuessOurBlockReceiverTest is BaseTest {
-    uint128 private constant COST = 0.025 ether;
+    uint128 private constant COST = 0.1 ether;
     uint32 private constant OLDEST_BLOCK = 392_813;
     uint32 private constant ONE_DAY_BLOCKS = 7200;
     uint32 public constant MAX_BPS = 10_000;
@@ -307,6 +307,24 @@ contract GuessOurBlockReceiverTest is BaseTest {
         underTest.exposed_lzReceiver(generateOrigin(), abi.encode(winningBlock, validator));
     }
 
+    function test_lzReceive_whenBlockWinsButInMigrations_thenCallEvents() external prankAs(user_A) {
+        uint32 winningBlock = 999_322;
+        uint32 sanitizedBlock = winningBlock - winningBlock % GROUP_SIZE;
+        uint128 donate = 23e18;
+
+        vm.expectCall(mockDripVault, donate, abi.encodeWithSelector(IDripVault.deposit.selector));
+        underTest.donate{ value: donate }();
+
+        bytes32 guid = underTest.MOCKED_GUID();
+
+        changePrank(owner);
+        underTest.updateDripVault(generateAddress());
+
+        expectExactEmit();
+        emit IGuessOurBlock.BlockWon(guid, sanitizedBlock, donate);
+        underTest.exposed_lzReceiver(generateOrigin(), abi.encode(winningBlock, validator));
+    }
+
     function test_lzReceive_givenAtLeastAWinner_whenRewardIsTooLowerForNextRound_thenGivesAll() external {
         uint32 winningBlock = 999_322;
         uint32 guessBlock = winningBlock - winningBlock % GROUP_SIZE;
@@ -542,6 +560,13 @@ contract GuessOurBlockReceiverTest is BaseTest {
     function test_updateDripVault_whenDripVaultIsZero_thenReverts() external prankAs(owner) {
         vm.expectRevert(IGuessOurBlock.DripVaultCannotBeZero.selector);
         underTest.updateDripVault(address(0));
+    }
+
+    function test_updateDripVault_whenAlreadyMigrating_thenReverts() external prankAs(owner) {
+        underTest.updateDripVault(generateAddress());
+
+        vm.expectRevert(IGuessOurBlock.AlreadyMigrating.selector);
+        underTest.updateDripVault(generateAddress());
     }
 
     function test_updateDripVault_whenDripVaultIsPermanentlySet_thenReverts() external prankAs(owner) {
