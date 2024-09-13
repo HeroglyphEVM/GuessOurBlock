@@ -37,7 +37,7 @@ contract GuessOurBlockReceiver is IGuessOurBlock, Ownable, OAppReceiver {
         if (_dripVault == address(0)) revert DripVaultCannotBeZero();
 
         treasury = _treasury;
-        fullWeightCost = 0.025 ether;
+        fullWeightCost = 0.1 ether;
         groupSize = 10;
         feeBps = FeeStructure({ treasury: 200, validator: 300, nextRound: 1500 });
 
@@ -124,6 +124,7 @@ contract GuessOurBlockReceiver is IGuessOurBlock, Ownable, OAppReceiver {
 
         emit BlockWon(_guid, blockNumberTail, winningLot);
 
+        if (isMigratingDripVault) return;
         if (winningLot == 0) return;
         if (blockMetadata.totalGuessWeight == 0) {
             lot = winningLot;
@@ -209,6 +210,7 @@ contract GuessOurBlockReceiver is IGuessOurBlock, Ownable, OAppReceiver {
     function updateDripVault(address _dripVault) external onlyOwner {
         if (permanentlySetDripVault) revert CanNoLongerUpdateDripVault();
         if (_dripVault == address(0)) revert DripVaultCannotBeZero();
+        if (isMigratingDripVault) revert AlreadyMigrating();
 
         uint256 totalDeposit = dripVault.getTotalDeposit();
         dripVault.withdraw(treasury, totalDeposit);

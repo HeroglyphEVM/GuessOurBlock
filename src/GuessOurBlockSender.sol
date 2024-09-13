@@ -35,7 +35,7 @@ contract GuessOurBlockSender is TickerOperator, OAppSender {
         _repayHeroglyph(_heroglyphFee);
 
         // return instead a revert for gas optimization on Heroglyph side.
-        if (latestMintedBlock > _blockNumber) return;
+        if (latestMintedBlock >= _blockNumber) return;
         latestMintedBlock = _blockNumber;
 
         bytes memory option = defaultLzOption;
