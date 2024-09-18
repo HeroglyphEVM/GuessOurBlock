@@ -92,6 +92,11 @@ contract GuessOurBlockReceiverTest is BaseTest {
         underTest.guess{ value: COST }(latestTailBlock);
     }
 
+    function test_updateMinimumBlockAge_givenTooLow_thenReverts() external prankAs(owner) {
+        vm.expectRevert(IGuessOurBlock.MinimumBlockAgeCannotBeLowerThanOneDay.selector);
+        underTest.updateMinimumBlockAge(7199);
+    }
+
     function test_guess_givenInvalidTail_thenReverts() external prankAs(user_A) {
         uint32 latestTailBlock = underTest.getLatestTail();
 
@@ -528,7 +533,7 @@ contract GuessOurBlockReceiverTest is BaseTest {
     }
 
     function test_updateMinimumBlockAge_thenUpdates() external prankAs(owner) {
-        uint32 newMinimumBlockAge = 100;
+        uint32 newMinimumBlockAge = 7300;
 
         expectExactEmit();
         emit IGuessOurBlock.MinimumBlockAgeUpdated(newMinimumBlockAge);
@@ -540,6 +545,11 @@ contract GuessOurBlockReceiverTest is BaseTest {
     function test_updateGroupSize_asNonOwner_thenReverts() external prankAs(user_A) {
         vm.expectRevert(abi.encodeWithSelector(Ownable.OwnableUnauthorizedAccount.selector, user_A));
         underTest.updateGroupSize(1);
+    }
+
+    function test_updateGroupSize_givenZero_thenReverts() external prankAs(owner) {
+        vm.expectRevert(IGuessOurBlock.GroupSizeCannotBeZero.selector);
+        underTest.updateGroupSize(0);
     }
 
     function test_updateGroupSize_thenUpdates() external prankAs(owner) {

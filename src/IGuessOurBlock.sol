@@ -17,6 +17,8 @@ interface IGuessOurBlock {
     error AlreadyMigrating();
     error TreasuryCannotBeZero();
     error FullWeightCostCannotBeZero();
+    error GroupSizeCannotBeZero();
+    error MinimumBlockAgeCannotBeLowerThanOneDay();
 
     event BlockWon(bytes32 indexed lzGuid, uint32 indexed blockId, uint128 lot);
     event Guessed(address indexed wallet, uint32 indexed blockId, uint128 guessWeight, uint128 nativeSent);

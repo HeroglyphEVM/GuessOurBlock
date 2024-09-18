@@ -14,6 +14,7 @@ contract GuessOurBlockReceiver is IGuessOurBlock, Ownable, OAppReceiver {
     uint256 private constant PRECISION = 1e18;
     uint32 public constant MAX_BPS = 10_000;
     uint128 public constant TOO_LOW_BALANCE = 0.1e18;
+    uint32 public constant ONE_DAY_IN_ETH_BLOCK = 7200;
 
     FeeStructure private feeBps;
     address public treasury;
@@ -43,7 +44,7 @@ contract GuessOurBlockReceiver is IGuessOurBlock, Ownable, OAppReceiver {
         groupSize = 10;
         feeBps = FeeStructure({ treasury: 200, validator: 300, nextRound: 1500 });
 
-        minimumBlockAge = 7200;
+        minimumBlockAge = ONE_DAY_IN_ETH_BLOCK;
         dripVault = IDripVault(_dripVault);
     }
 
@@ -194,11 +195,15 @@ contract GuessOurBlockReceiver is IGuessOurBlock, Ownable, OAppReceiver {
     }
 
     function updateMinimumBlockAge(uint32 _minimumBlockAgeInBlock) external onlyOwner {
+        if (_minimumBlockAgeInBlock < ONE_DAY_IN_ETH_BLOCK) revert MinimumBlockAgeCannotBeLowerThanOneDay();
+
         minimumBlockAge = _minimumBlockAgeInBlock;
         emit MinimumBlockAgeUpdated(_minimumBlockAgeInBlock);
     }
 
     function updateGroupSize(uint32 _groupSize) external onlyOwner {
+        if (_groupSize == 0) revert GroupSizeCannotBeZero();
+
         groupSize = _groupSize;
         emit GroupSizeUpdated(_groupSize);
     }
