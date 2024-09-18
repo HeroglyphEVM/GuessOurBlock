@@ -3,7 +3,7 @@ pragma solidity ^0.8.24;
 
 import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
 import { IDripVault } from "../dripVaults/IDripVault.sol";
-import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import { IERC20, SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 abstract contract BaseDripVault is IDripVault, Ownable {
     address public rateReceiver;
@@ -43,7 +43,7 @@ abstract contract BaseDripVault is IDripVault, Ownable {
             (bool success,) = _to.call{ value: _amount }("");
             if (!success) revert FailedToSendETH();
         } else {
-            IERC20(_asset).transfer(_to, _amount);
+            SafeERC20.safeTransfer(IERC20(_asset), _to, _amount);
         }
     }
 
