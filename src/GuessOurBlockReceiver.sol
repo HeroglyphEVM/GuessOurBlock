@@ -11,6 +11,7 @@ import { OAppCore, Origin } from "@layerzerolabs/lz-evm-oapp-v2/contracts/oapp/O
 import { IDripVault } from "src/dripVaults/IDripVault.sol";
 
 contract GuessOurBlockReceiver is IGuessOurBlock, Ownable, OAppReceiver {
+    uint256 private constant PRECISION = 1e18;
     uint32 public constant MAX_BPS = 10_000;
     uint128 public constant TOO_LOW_BALANCE = 0.1e18;
 
@@ -85,7 +86,7 @@ contract GuessOurBlockReceiver is IGuessOurBlock, Ownable, OAppReceiver {
         }
 
         BlockAction storage action = actions[msg.sender][_tailBlockNumber];
-        uint128 guessWeight = uint128(Math.mulDiv(_nativeSent, 1e18, fullWeightCost));
+        uint128 guessWeight = uint128(Math.mulDiv(_nativeSent, PRECISION, fullWeightCost));
         action.guessWeight += guessWeight;
 
         blockDatas[_tailBlockNumber].totalGuessWeight += guessWeight;
@@ -131,8 +132,8 @@ contract GuessOurBlockReceiver is IGuessOurBlock, Ownable, OAppReceiver {
             return;
         }
 
-        if (blockMetadata.totalGuessWeight < 1e18) {
-            uint128 reducedLot = uint128(Math.mulDiv(winningLot, blockMetadata.totalGuessWeight, 1e18));
+        if (blockMetadata.totalGuessWeight < PRECISION) {
+            uint128 reducedLot = uint128(Math.mulDiv(winningLot, blockMetadata.totalGuessWeight, PRECISION));
             lot = winningLot - reducedLot;
             winningLot = reducedLot;
         }
