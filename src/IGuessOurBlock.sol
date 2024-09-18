@@ -16,6 +16,7 @@ interface IGuessOurBlock {
     error InvalidSender();
     error AlreadyMigrating();
     error TreasuryCannotBeZero();
+    error FullWeightCostCannotBeZero();
 
     event BlockWon(bytes32 indexed lzGuid, uint32 indexed blockId, uint128 lot);
     event Guessed(address indexed wallet, uint32 indexed blockId, uint128 guessWeight, uint128 nativeSent);
@@ -31,6 +32,7 @@ interface IGuessOurBlock {
     event DripVaultMigrationCompleted();
     event DripVaultIsPermanentlySet();
     event TreasuryUpdated(address treasury);
+    event FullWeightCostUpdated(uint128 fullWeightCost);
 
     struct BlockMetadata {
         uint128 winningLot;

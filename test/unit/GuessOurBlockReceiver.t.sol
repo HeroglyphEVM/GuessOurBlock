@@ -649,6 +649,26 @@ contract GuessOurBlockReceiverTest is BaseTest {
         assertEq(underTest.treasury(), newTreasury);
     }
 
+    function test_setFullWeightCost_asNonOwner_thenReverts() external prankAs(user_A) {
+        vm.expectRevert(abi.encodeWithSelector(Ownable.OwnableUnauthorizedAccount.selector, user_A));
+        underTest.setFullWeightCost(0);
+    }
+
+    function test_setFullWeightCost_whenFullWeightCostIsZero_thenReverts() external prankAs(owner) {
+        vm.expectRevert(IGuessOurBlock.FullWeightCostCannotBeZero.selector);
+        underTest.setFullWeightCost(0);
+    }
+
+    function test_setFullWeightCost_thenUpdates() external prankAs(owner) {
+        uint128 newFullWeightCost = 0.1 ether;
+
+        expectExactEmit();
+        emit IGuessOurBlock.FullWeightCostUpdated(newFullWeightCost);
+        underTest.setFullWeightCost(newFullWeightCost);
+
+        assertEq(underTest.fullWeightCost(), newFullWeightCost);
+    }
+
     function getExpectedLatestTail(uint256 _blockNumber, uint256 _minimumBlockAge, uint256 _groupSize)
         private
         pure

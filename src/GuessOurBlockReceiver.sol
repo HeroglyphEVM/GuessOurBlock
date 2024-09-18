@@ -19,6 +19,7 @@ contract GuessOurBlockReceiver is IGuessOurBlock, Ownable, OAppReceiver {
     address public treasury;
     IDripVault public dripVault;
 
+    // 1 complete ticket cost
     uint128 public fullWeightCost;
     uint128 public lot;
     uint32 public groupSize;
@@ -279,5 +280,12 @@ contract GuessOurBlockReceiver is IGuessOurBlock, Ownable, OAppReceiver {
 
         treasury = _treasury;
         emit TreasuryUpdated(_treasury);
+    }
+
+    function setFullWeightCost(uint128 _fullWeightCost) external onlyOwner {
+        if (_fullWeightCost == 0) revert FullWeightCostCannotBeZero();
+
+        fullWeightCost = _fullWeightCost;
+        emit FullWeightCostUpdated(_fullWeightCost);
     }
 }
