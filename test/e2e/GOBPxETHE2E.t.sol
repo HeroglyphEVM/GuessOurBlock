@@ -18,7 +18,7 @@ contract GOBPxETHE2E is BaseTest {
     apxETHVault private apxEthVault;
 
     address private user;
-    address private autoPirex = 0x9Ba021B0a9b958B5E75cE9f6dff97C7eE52cb3E6;
+    IERC20 private autoPirex = IERC20(0x9Ba021B0a9b958B5E75cE9f6dff97C7eE52cb3E6);
     IERC20 private pxETH = IERC20(0x04C154b66CB340F3Ae24111CC767e0184Ed00Cc6);
 
     uint256 private fork;
@@ -27,7 +27,7 @@ contract GOBPxETHE2E is BaseTest {
         fork = vm.createSelectFork(vm.envString("RPC_MAINNET"));
         prepareTest();
 
-        apxEthVault = new apxETHVault(owner, address(0), autoPirex, treasury);
+        apxEthVault = new apxETHVault(owner, address(0), address(autoPirex), treasury);
 
         vm.mockCall(mockLzEndpoint, abi.encodeWithSignature("setDelegate(address)"), abi.encode(true));
         underTest = new GuessOurBlockReceiverHarness(mockLzEndpoint, owner, treasury, address(apxEthVault));
@@ -52,17 +52,17 @@ contract GOBPxETHE2E is BaseTest {
         underTest.donate{ value: 35e18 }();
         underTest.guess{ value: 15e18 }(winningBlock);
 
-        uint256 beforeWinPxETHBalance = pxETH.balanceOf(user);
+        uint256 beforeWinPxETHBalance = autoPirex.balanceOf(user);
 
         skip(15 days);
 
         changePrank(validator);
         underTest.exposed_lzReceiver(generateOrigin(), abi.encode(winningBlock, validator));
 
-        uint256 afterWinTreasuryPxETHBalance = pxETH.balanceOf(treasury);
+        uint256 afterWinTreasuryPxETHBalance = autoPirex.balanceOf(treasury);
 
         assertGt(afterWinTreasuryPxETHBalance, 0);
-        assertGt(pxETH.balanceOf(validator), 0);
+        assertGt(autoPirex.balanceOf(validator), 0);
 
         skip(15 days);
 
@@ -70,8 +70,8 @@ contract GOBPxETHE2E is BaseTest {
         underTest.claim(winningBlock);
 
         //for some reason, the interest is not being added
-        // assertGt(pxETH.balanceOf(treasury), afterWinTreasuryPxETHBalance);
-        assertGt(pxETH.balanceOf(user), beforeWinPxETHBalance);
+        // assertGt(autoPirex.balanceOf(treasury), afterWinTreasuryPxETHBalance);
+        assertGt(autoPirex.balanceOf(user), beforeWinPxETHBalance);
         assertEq(apxEthVault.getTotalDeposit(), underTest.lot());
 
         changePrank(owner);

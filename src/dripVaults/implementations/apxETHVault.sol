@@ -39,26 +39,16 @@ contract apxETHVault is BaseDripVault {
     }
 
     function _beforeWithdrawal(address _to, uint256 _amount) internal override {
-        uint128 exitedPx = uint128(apxETH.redeem(apxETH.maxRedeem(address(this)), address(this), address(this)));
-        uint256 interestInPx;
         uint256 cachedTotalDeposit = getTotalDeposit();
+        uint256 maxRedeemInETH = apxETH.convertToAssets(apxETH.maxRedeem(address(this)));
+        uint256 amountInApx = apxETH.convertToShares(_amount);
+        uint256 interestInApx;
 
-        uint256 amountInPx = apxETH.convertToShares(_amount);
-        uint256 exitedInETH = apxETH.convertToAssets(exitedPx);
-
-        //Shares scales down, in full exit, we might find less than the total deposit
-        if (exitedInETH > cachedTotalDeposit) {
-            interestInPx = apxETH.convertToShares(exitedInETH - cachedTotalDeposit);
+        if (maxRedeemInETH > cachedTotalDeposit) {
+            interestInApx = apxETH.convertToShares(maxRedeemInETH - cachedTotalDeposit);
         }
 
-        _transfer(address(pxETH), rateReceiver, interestInPx);
-        _transfer(address(pxETH), _to, amountInPx);
-
-        if (cachedTotalDeposit - _amount != 0) {
-            apxETH.deposit(pxETH.balanceOf(address(this)), address(this));
-        } else {
-            // Transfer the remaining balance of pxETH to the rateReceiver, left over from shares conversion
-            _transfer(address(pxETH), rateReceiver, pxETH.balanceOf(address(this)));
-        }
+        _transfer(address(apxETH), rateReceiver, interestInApx);
+        _transfer(address(apxETH), _to, amountInApx);
     }
 }
