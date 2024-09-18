@@ -629,6 +629,26 @@ contract GuessOurBlockReceiverTest is BaseTest {
         assertEq(underTest.getLatestTail(), getExpectedLatestTail(10_101, minimumBlockAge, underTest.groupSize()));
     }
 
+    function test_setTreasury_asNonOwner_thenReverts() external prankAs(user_A) {
+        vm.expectRevert(abi.encodeWithSelector(Ownable.OwnableUnauthorizedAccount.selector, user_A));
+        underTest.setTreasury(address(0));
+    }
+
+    function test_setTreasury_whenTreasuryIsZero_thenReverts() external prankAs(owner) {
+        vm.expectRevert(IGuessOurBlock.TreasuryCannotBeZero.selector);
+        underTest.setTreasury(address(0));
+    }
+
+    function test_setTreasury_thenUpdates() external prankAs(owner) {
+        address newTreasury = generateAddress();
+
+        expectExactEmit();
+        emit IGuessOurBlock.TreasuryUpdated(newTreasury);
+        underTest.setTreasury(newTreasury);
+
+        assertEq(underTest.treasury(), newTreasury);
+    }
+
     function getExpectedLatestTail(uint256 _blockNumber, uint256 _minimumBlockAge, uint256 _groupSize)
         private
         pure

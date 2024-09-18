@@ -276,4 +276,11 @@ contract GuessOurBlockReceiver is IGuessOurBlock, Ownable, OAppReceiver {
     receive() external payable {
         if (msg.sender != address(dripVault)) revert InvalidSender();
     }
+
+    function setTreasury(address _treasury) external onlyOwner {
+        if (_treasury == address(0)) revert TreasuryCannotBeZero();
+
+        treasury = _treasury;
+        emit TreasuryUpdated(_treasury);
+    }
 }
