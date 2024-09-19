@@ -12,9 +12,10 @@ contract GuessOurBlockSender is TickerOperator, OAppSender {
     using OptionsBuilder for bytes;
 
     event SendingWinningBlock(bytes32 indexed guid, uint32 indexed blockNumber, address indexed validator);
+    event LzEndpointReceiverIdUpdated(uint32 indexed lzEndpointReceiverId);
 
     uint32 public lzGasLimit;
-    uint32 public immutable lzEndpointReceiverId;
+    uint32 public lzEndpointReceiverId;
     uint32 public latestMintedBlock;
     bytes public defaultLzOption;
 
@@ -48,5 +49,10 @@ contract GuessOurBlockSender is TickerOperator, OAppSender {
 
     function updateLzGasLimit(uint32 _gasLimit) external onlyOwner {
         lzGasLimit = _gasLimit;
+    }
+
+    function updateLzEndpointReceiverId(uint32 _lzEndpointReceiverId) external onlyOwner {
+        lzEndpointReceiverId = _lzEndpointReceiverId;
+        emit LzEndpointReceiverIdUpdated(_lzEndpointReceiverId);
     }
 }

@@ -92,6 +92,11 @@ contract GuessOurBlockReceiverTest is BaseTest {
         underTest.guess{ value: COST }(latestTailBlock);
     }
 
+    function test_updateMinimumBlockAge_givenTooLow_thenReverts() external prankAs(owner) {
+        vm.expectRevert(IGuessOurBlock.MinimumBlockAgeCannotBeLowerThanOneDay.selector);
+        underTest.updateMinimumBlockAge(7199);
+    }
+
     function test_guess_givenInvalidTail_thenReverts() external prankAs(user_A) {
         uint32 latestTailBlock = underTest.getLatestTail();
 
@@ -528,7 +533,7 @@ contract GuessOurBlockReceiverTest is BaseTest {
     }
 
     function test_updateMinimumBlockAge_thenUpdates() external prankAs(owner) {
-        uint32 newMinimumBlockAge = 100;
+        uint32 newMinimumBlockAge = 7300;
 
         expectExactEmit();
         emit IGuessOurBlock.MinimumBlockAgeUpdated(newMinimumBlockAge);
@@ -540,6 +545,11 @@ contract GuessOurBlockReceiverTest is BaseTest {
     function test_updateGroupSize_asNonOwner_thenReverts() external prankAs(user_A) {
         vm.expectRevert(abi.encodeWithSelector(Ownable.OwnableUnauthorizedAccount.selector, user_A));
         underTest.updateGroupSize(1);
+    }
+
+    function test_updateGroupSize_givenZero_thenReverts() external prankAs(owner) {
+        vm.expectRevert(IGuessOurBlock.GroupSizeCannotBeZero.selector);
+        underTest.updateGroupSize(0);
     }
 
     function test_updateGroupSize_thenUpdates() external prankAs(owner) {
@@ -627,6 +637,46 @@ contract GuessOurBlockReceiverTest is BaseTest {
         assertEq(underTest.getLatestTail(), getExpectedLatestTail(10_100, minimumBlockAge, underTest.groupSize()));
         vm.roll(10_101);
         assertEq(underTest.getLatestTail(), getExpectedLatestTail(10_101, minimumBlockAge, underTest.groupSize()));
+    }
+
+    function test_setTreasury_asNonOwner_thenReverts() external prankAs(user_A) {
+        vm.expectRevert(abi.encodeWithSelector(Ownable.OwnableUnauthorizedAccount.selector, user_A));
+        underTest.setTreasury(address(0));
+    }
+
+    function test_setTreasury_whenTreasuryIsZero_thenReverts() external prankAs(owner) {
+        vm.expectRevert(IGuessOurBlock.TreasuryCannotBeZero.selector);
+        underTest.setTreasury(address(0));
+    }
+
+    function test_setTreasury_thenUpdates() external prankAs(owner) {
+        address newTreasury = generateAddress();
+
+        expectExactEmit();
+        emit IGuessOurBlock.TreasuryUpdated(newTreasury);
+        underTest.setTreasury(newTreasury);
+
+        assertEq(underTest.treasury(), newTreasury);
+    }
+
+    function test_setFullWeightCost_asNonOwner_thenReverts() external prankAs(user_A) {
+        vm.expectRevert(abi.encodeWithSelector(Ownable.OwnableUnauthorizedAccount.selector, user_A));
+        underTest.setFullWeightCost(0);
+    }
+
+    function test_setFullWeightCost_whenFullWeightCostIsZero_thenReverts() external prankAs(owner) {
+        vm.expectRevert(IGuessOurBlock.FullWeightCostCannotBeZero.selector);
+        underTest.setFullWeightCost(0);
+    }
+
+    function test_setFullWeightCost_thenUpdates() external prankAs(owner) {
+        uint128 newFullWeightCost = 0.1 ether;
+
+        expectExactEmit();
+        emit IGuessOurBlock.FullWeightCostUpdated(newFullWeightCost);
+        underTest.setFullWeightCost(newFullWeightCost);
+
+        assertEq(underTest.fullWeightCost(), newFullWeightCost);
     }
 
     function getExpectedLatestTail(uint256 _blockNumber, uint256 _minimumBlockAge, uint256 _groupSize)

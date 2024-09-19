@@ -42,8 +42,11 @@ contract AaveVault is BaseDripVault {
 
         uint256 cachedTotalDeposit = getTotalDeposit();
         uint256 interest = exited - cachedTotalDeposit;
+        uint256 amountToSupply = cachedTotalDeposit - _amount;
 
-        aaveV3Pool.supply(address(weth), cachedTotalDeposit - _amount, address(this), 0);
+        if (amountToSupply > 0) {
+            aaveV3Pool.supply(address(weth), amountToSupply, address(this), 0);
+        }
 
         weth.withdraw(_amount + interest);
 

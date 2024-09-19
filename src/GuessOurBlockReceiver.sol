@@ -11,13 +11,16 @@ import { OAppCore, Origin } from "@layerzerolabs/lz-evm-oapp-v2/contracts/oapp/O
 import { IDripVault } from "src/dripVaults/IDripVault.sol";
 
 contract GuessOurBlockReceiver is IGuessOurBlock, Ownable, OAppReceiver {
+    uint256 private constant PRECISION = 1e18;
     uint32 public constant MAX_BPS = 10_000;
     uint128 public constant TOO_LOW_BALANCE = 0.1e18;
+    uint32 public constant ONE_DAY_IN_ETH_BLOCK = 7200;
 
     FeeStructure private feeBps;
     address public treasury;
     IDripVault public dripVault;
 
+    // 1 complete ticket cost
     uint128 public fullWeightCost;
     uint128 public lot;
     uint32 public groupSize;
@@ -41,7 +44,7 @@ contract GuessOurBlockReceiver is IGuessOurBlock, Ownable, OAppReceiver {
         groupSize = 10;
         feeBps = FeeStructure({ treasury: 200, validator: 300, nextRound: 1500 });
 
-        minimumBlockAge = 7200;
+        minimumBlockAge = ONE_DAY_IN_ETH_BLOCK;
         dripVault = IDripVault(_dripVault);
     }
 
@@ -85,7 +88,7 @@ contract GuessOurBlockReceiver is IGuessOurBlock, Ownable, OAppReceiver {
         }
 
         BlockAction storage action = actions[msg.sender][_tailBlockNumber];
-        uint128 guessWeight = uint128(Math.mulDiv(_nativeSent, 1e18, fullWeightCost));
+        uint128 guessWeight = uint128(Math.mulDiv(_nativeSent, PRECISION, fullWeightCost));
         action.guessWeight += guessWeight;
 
         blockDatas[_tailBlockNumber].totalGuessWeight += guessWeight;
@@ -131,8 +134,8 @@ contract GuessOurBlockReceiver is IGuessOurBlock, Ownable, OAppReceiver {
             return;
         }
 
-        if (blockMetadata.totalGuessWeight < 1e18) {
-            uint128 reducedLot = uint128(Math.mulDiv(winningLot, blockMetadata.totalGuessWeight, 1e18));
+        if (blockMetadata.totalGuessWeight < PRECISION) {
+            uint128 reducedLot = uint128(Math.mulDiv(winningLot, blockMetadata.totalGuessWeight, PRECISION));
             lot = winningLot - reducedLot;
             winningLot = reducedLot;
         }
@@ -192,11 +195,15 @@ contract GuessOurBlockReceiver is IGuessOurBlock, Ownable, OAppReceiver {
     }
 
     function updateMinimumBlockAge(uint32 _minimumBlockAgeInBlock) external onlyOwner {
+        if (_minimumBlockAgeInBlock < ONE_DAY_IN_ETH_BLOCK) revert MinimumBlockAgeCannotBeLowerThanOneDay();
+
         minimumBlockAge = _minimumBlockAgeInBlock;
         emit MinimumBlockAgeUpdated(_minimumBlockAgeInBlock);
     }
 
     function updateGroupSize(uint32 _groupSize) external onlyOwner {
+        if (_groupSize == 0) revert GroupSizeCannotBeZero();
+
         groupSize = _groupSize;
         emit GroupSizeUpdated(_groupSize);
     }
@@ -273,7 +280,17 @@ contract GuessOurBlockReceiver is IGuessOurBlock, Ownable, OAppReceiver {
         return latestTailBlock_ < block.number + minimumBlockAge ? latestTailBlock_ + groupSize : latestTailBlock_;
     }
 
-    receive() external payable {
-        if (msg.sender != address(dripVault)) revert InvalidSender();
+    function setTreasury(address _treasury) external onlyOwner {
+        if (_treasury == address(0)) revert TreasuryCannotBeZero();
+
+        treasury = _treasury;
+        emit TreasuryUpdated(_treasury);
+    }
+
+    function setFullWeightCost(uint128 _fullWeightCost) external onlyOwner {
+        if (_fullWeightCost == 0) revert FullWeightCostCannotBeZero();
+
+        fullWeightCost = _fullWeightCost;
+        emit FullWeightCostUpdated(_fullWeightCost);
     }
 }
