@@ -38,7 +38,7 @@ contract AaveVault is BaseDripVault {
     }
 
     function _beforeWithdrawal(address _to, uint256 _amount) internal override {
-        uint128 exited = uint128(aaveV3Pool.withdraw(address(weth), type(uint256).max, address(this)));
+        uint256 exited = aaveV3Pool.withdraw(address(weth), type(uint256).max, address(this));
 
         uint256 cachedTotalDeposit = getTotalDeposit();
         uint256 interest = exited - cachedTotalDeposit;

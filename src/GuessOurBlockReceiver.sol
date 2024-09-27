@@ -92,7 +92,7 @@ contract GuessOurBlockReceiver is IGuessOurBlock, Ownable, OAppReceiver {
         action.guessWeight += guessWeight;
 
         blockDatas[_tailBlockNumber].totalGuessWeight += guessWeight;
-        lot += uint128(_nativeSent);
+        lot += _nativeSent;
 
         emit Guessed(msg.sender, _tailBlockNumber, guessWeight, _nativeSent);
     }
