@@ -23,7 +23,6 @@ interface IGuessOurBlock {
     event Claimed(address indexed wallet, uint32 indexed blockId, uint128 winningPot);
     event Donated(address indexed from, uint256 amount);
     event MinimumBlockAgeUpdated(uint32 minimumAgeInBlockNumber);
-    event RoundPauseTimerUpdated(uint32 pauseTimer);
     event FeeUpdated(FeeStructure fee);
     event GroupSizeUpdated(uint32 groupSize);
     event ErrorBlockAlreadyCompleted(uint32 blockId);
