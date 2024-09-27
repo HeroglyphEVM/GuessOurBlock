@@ -8,12 +8,10 @@ interface IGuessOurBlock {
     error MismatchArrays();
     error AlreadyClaimed();
     error NoReward();
-    error RoundNotStarted();
     error ExceedBPSMaximum();
     error InvalidTailBlockNumber();
     error CanNoLongerUpdateDripVault();
     error DripVaultCannotBeZero();
-    error InvalidSender();
     error AlreadyMigrating();
     error TreasuryCannotBeZero();
     error FullWeightCostCannotBeZero();
