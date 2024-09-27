@@ -18,8 +18,8 @@ interface IPirexEth {
 }
 
 contract apxETHVault is BaseDripVault {
-    IApxETH public apxETH;
-    IPirexEth public pirexEth;
+    IApxETH public immutable apxETH;
+    IPirexEth public immutable pirexEth;
 
     constructor(address _owner, address _gob, address _apxETH, address _rateReceiver)
         BaseDripVault(_owner, _gob, _rateReceiver)

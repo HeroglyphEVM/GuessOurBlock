@@ -20,8 +20,8 @@ interface IAaveV3Pool {
 }
 
 contract AaveVault is BaseDripVault {
-    IAaveV3Pool public aaveV3Pool;
-    IWETH public weth;
+    IAaveV3Pool public immutable aaveV3Pool;
+    IWETH public immutable weth;
 
     constructor(address _owner, address _gob, address _aaveV3Pool, address _weth, address _rateReceiver)
         BaseDripVault(_owner, _gob, _rateReceiver)
