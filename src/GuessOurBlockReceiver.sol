@@ -16,22 +16,21 @@ contract GuessOurBlockReceiver is IGuessOurBlock, Ownable, OAppReceiver {
     uint128 public constant TOO_LOW_BALANCE = 0.1e18;
     uint32 public constant ONE_DAY_IN_ETH_BLOCK = 7200;
 
-    FeeStructure private feeBps;
     address public treasury;
+    uint32 public groupSize;
+    uint32 public minimumBlockAge;
+    bool public isMigratingDripVault;
+    bool public permanentlySetDripVault;
+
     IDripVault public dripVault;
+    FeeStructure private feeBps;
 
     // 1 complete ticket cost
     uint128 public fullWeightCost;
     uint128 public lot;
-    uint32 public groupSize;
 
     mapping(uint32 blockId => BlockMetadata) private blockDatas;
     mapping(address user => mapping(uint32 blockId => BlockAction)) private actions;
-
-    uint32 public minimumBlockAge;
-
-    bool public isMigratingDripVault;
-    bool public permanentlySetDripVault;
 
     constructor(address _lzEndpoint, address _owner, address _treasury, address _dripVault)
         OAppCore(_lzEndpoint, _owner)
