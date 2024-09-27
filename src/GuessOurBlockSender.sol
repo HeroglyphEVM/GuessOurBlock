@@ -2,7 +2,6 @@
 pragma solidity ^0.8.0;
 
 import { TickerOperator } from "heroglyph-library/src/TickerOperator.sol";
-import { Math } from "@openzeppelin/contracts/utils/math/Math.sol";
 
 import { OAppSender } from "@layerzerolabs/lz-evm-oapp-v2/contracts/oapp/OAppSender.sol";
 import { OptionsBuilder } from "@layerzerolabs/lz-evm-oapp-v2/contracts/oapp/libs/OptionsBuilder.sol";
