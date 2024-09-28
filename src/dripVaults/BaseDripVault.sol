@@ -6,8 +6,8 @@ import { IDripVault } from "../dripVaults/IDripVault.sol";
 import { IERC20, SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 abstract contract BaseDripVault is IDripVault, Ownable {
+    address public immutable gob;
     address public rateReceiver;
-    address public gob;
     uint256 private totalDeposit;
 
     modifier onlyGob() {
@@ -45,11 +45,6 @@ abstract contract BaseDripVault is IDripVault, Ownable {
         } else {
             SafeERC20.safeTransfer(IERC20(_asset), _to, _amount);
         }
-    }
-
-    function setGob(address _gob) external onlyOwner {
-        gob = _gob;
-        emit GobUpdated(_gob);
     }
 
     function setRateReceiver(address _rateReceiver) external onlyOwner {
