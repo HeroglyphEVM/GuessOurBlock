@@ -73,7 +73,7 @@ contract GOBDeploy is BaseScript {
                 GOB_RECEIVER_CONTRACT_NAME,
                 0,
                 type(GuessOurBlockReceiver).creationCode,
-                abi.encode(config.receiverLzEndpoint, _getDeployerAddress(), _getDeployerAddress(), vault)
+                abi.encode(config.receiverLzEndpoint, _getDeployerAddress(), _getDeployerAddress())
             );
         } else {
             revert("Unsupported network");
@@ -81,7 +81,7 @@ contract GOBDeploy is BaseScript {
 
         if (!gobExists) {
             vm.broadcast(_getDeployerPrivateKey());
-            apxETHVault(payable(vault)).setGob(gobReceiver);
+            GuessOurBlockReceiver(payable(gobReceiver)).updateDripVault(vault);
         }
     }
 }

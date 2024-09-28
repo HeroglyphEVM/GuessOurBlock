@@ -28,7 +28,7 @@ contract GuessOurBlockReceiverTest is BaseTest {
 
     GuessOurBlockReceiverHarness private underTest;
 
-    function setUp() public pranking {
+    function setUp() public {
         prepareTest();
 
         vm.mockCall(mockDripVault, abi.encodeWithSelector(IDripVault.getTotalDeposit.selector), abi.encode(0));
@@ -36,7 +36,10 @@ contract GuessOurBlockReceiverTest is BaseTest {
         vm.mockCall(mockDripVault, abi.encodeWithSelector(IDripVault.deposit.selector), abi.encode(true));
 
         vm.mockCall(mockLzEndpoint, abi.encodeWithSignature("setDelegate(address)"), abi.encode(true));
-        underTest = new GuessOurBlockReceiverHarness(mockLzEndpoint, owner, treasury, mockDripVault);
+        underTest = new GuessOurBlockReceiverHarness(mockLzEndpoint, owner, treasury);
+
+        vm.prank(owner);
+        underTest.updateDripVault(mockDripVault);
 
         vm.roll(OLDEST_BLOCK);
         skip(2 weeks);
@@ -53,11 +56,11 @@ contract GuessOurBlockReceiverTest is BaseTest {
     }
 
     function test_constructor_thenContractWellConfigured() external {
-        underTest = new GuessOurBlockReceiverHarness(mockLzEndpoint, owner, treasury, mockDripVault);
+        underTest = new GuessOurBlockReceiverHarness(mockLzEndpoint, owner, treasury);
 
         assertEq(underTest.owner(), owner);
         assertEq(underTest.treasury(), treasury);
-        assertEq(address(underTest.dripVault()), mockDripVault);
+        assertEq(address(underTest.dripVault()), address(0));
 
         assertEq(underTest.fullWeightCost(), COST);
         assertEq(abi.encode(underTest.getFeeStructure()), abi.encode(DEFAULT_FEE));
@@ -542,32 +545,12 @@ contract GuessOurBlockReceiverTest is BaseTest {
         assertEq(underTest.minimumBlockAge(), newMinimumBlockAge);
     }
 
-    function test_updateGroupSize_asNonOwner_thenReverts() external prankAs(user_A) {
-        vm.expectRevert(abi.encodeWithSelector(Ownable.OwnableUnauthorizedAccount.selector, user_A));
-        underTest.updateGroupSize(1);
-    }
-
-    function test_updateGroupSize_givenZero_thenReverts() external prankAs(owner) {
-        vm.expectRevert(IGuessOurBlock.GroupSizeCannotBeZero.selector);
-        underTest.updateGroupSize(0);
-    }
-
-    function test_updateGroupSize_thenUpdates() external prankAs(owner) {
-        uint32 newGroupSize = 200;
-
-        expectExactEmit();
-        emit IGuessOurBlock.GroupSizeUpdated(newGroupSize);
-        underTest.updateGroupSize(newGroupSize);
-
-        assertEq(underTest.groupSize(), newGroupSize);
-    }
-
     function test_updateDripVault_asNonOwner_thenReverts() external prankAs(user_A) {
         vm.expectRevert(abi.encodeWithSelector(Ownable.OwnableUnauthorizedAccount.selector, user_A));
         underTest.updateDripVault(address(0));
     }
 
-    function test_updateDripVault_whenDripVaultIsZero_thenReverts() external prankAs(owner) {
+    function test_updateDripVault_givenAddressZero_thenReverts() external prankAs(owner) {
         vm.expectRevert(IGuessOurBlock.DripVaultCannotBeZero.selector);
         underTest.updateDripVault(address(0));
     }
@@ -586,9 +569,23 @@ contract GuessOurBlockReceiverTest is BaseTest {
         underTest.updateDripVault(generateAddress());
     }
 
+    function test_updateDripVault_whenNoCurrrentDripVault_thenUpdatesWithoutMigration() external prankAs(owner) {
+        address newDripVault = generateAddress();
+        underTest = new GuessOurBlockReceiverHarness(mockLzEndpoint, owner, treasury);
+
+        expectExactEmit();
+        emit IGuessOurBlock.DripVaultUpdated(newDripVault);
+        underTest.updateDripVault(newDripVault);
+
+        assertEq(address(underTest.dripVault()), newDripVault);
+        assertEq(underTest.isMigratingDripVault(), false);
+    }
+
     function test_updateDripVault_thenUpdatesAndActiveMigration() external prankAs(owner) {
         address newDripVault = generateAddress();
 
+        expectExactEmit();
+        emit IGuessOurBlock.DripVaultMigrationStarted();
         expectExactEmit();
         emit IGuessOurBlock.DripVaultUpdated(newDripVault);
         underTest.updateDripVault(newDripVault);
@@ -630,13 +627,13 @@ contract GuessOurBlockReceiverTest is BaseTest {
         uint256 minimumBlockAge = underTest.minimumBlockAge();
         vm.roll(10_087);
 
-        assertEq(underTest.getLatestTail(), getExpectedLatestTail(10_087, minimumBlockAge, underTest.groupSize()));
+        assertEq(underTest.getLatestTail(), getExpectedLatestTail(10_087, minimumBlockAge, underTest.GROUP_SIZE()));
         vm.roll(10_088);
-        assertEq(underTest.getLatestTail(), getExpectedLatestTail(10_088, minimumBlockAge, underTest.groupSize()));
+        assertEq(underTest.getLatestTail(), getExpectedLatestTail(10_088, minimumBlockAge, underTest.GROUP_SIZE()));
         vm.roll(10_100);
-        assertEq(underTest.getLatestTail(), getExpectedLatestTail(10_100, minimumBlockAge, underTest.groupSize()));
+        assertEq(underTest.getLatestTail(), getExpectedLatestTail(10_100, minimumBlockAge, underTest.GROUP_SIZE()));
         vm.roll(10_101);
-        assertEq(underTest.getLatestTail(), getExpectedLatestTail(10_101, minimumBlockAge, underTest.groupSize()));
+        assertEq(underTest.getLatestTail(), getExpectedLatestTail(10_101, minimumBlockAge, underTest.GROUP_SIZE()));
     }
 
     function test_setTreasury_asNonOwner_thenReverts() external prankAs(user_A) {
@@ -701,8 +698,8 @@ contract GuessOurBlockReceiverTest is BaseTest {
 contract GuessOurBlockReceiverHarness is GuessOurBlockReceiver {
     bytes32 public constant MOCKED_GUID = keccak256("HelloWorld");
 
-    constructor(address _lzEndpoint, address _owner, address _treasury, address _dripVault)
-        GuessOurBlockReceiver(_lzEndpoint, _owner, _treasury, _dripVault)
+    constructor(address _lzEndpoint, address _owner, address _treasury)
+        GuessOurBlockReceiver(_lzEndpoint, _owner, _treasury)
     { }
 
     function exposed_lzReceiver(Origin calldata _origin, bytes calldata _message) external {

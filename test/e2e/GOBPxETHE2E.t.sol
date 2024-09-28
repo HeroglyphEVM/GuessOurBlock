@@ -30,10 +30,10 @@ contract GOBPxETHE2E is BaseTest {
         apxEthVault = new apxETHVault(owner, address(0), address(autoPirex), treasury);
 
         vm.mockCall(mockLzEndpoint, abi.encodeWithSignature("setDelegate(address)"), abi.encode(true));
-        underTest = new GuessOurBlockReceiverHarness(mockLzEndpoint, owner, treasury, address(apxEthVault));
+        underTest = new GuessOurBlockReceiverHarness(mockLzEndpoint, owner, treasury);
 
         vm.prank(owner);
-        apxEthVault.setGob(address(underTest));
+        underTest.updateDripVault(address(apxEthVault));
 
         skip(1 weeks);
     }
@@ -86,8 +86,8 @@ contract GOBPxETHE2E is BaseTest {
 contract GuessOurBlockReceiverHarness is GuessOurBlockReceiver {
     bytes32 public constant MOCKED_GUID = keccak256("HelloWorld");
 
-    constructor(address _lzEndpoint, address _owner, address _treasury, address _dripVault)
-        GuessOurBlockReceiver(_lzEndpoint, _owner, _treasury, _dripVault)
+    constructor(address _lzEndpoint, address _owner, address _treasury)
+        GuessOurBlockReceiver(_lzEndpoint, _owner, _treasury)
     { }
 
     function exposed_lzReceiver(Origin calldata _origin, bytes calldata _message) external {

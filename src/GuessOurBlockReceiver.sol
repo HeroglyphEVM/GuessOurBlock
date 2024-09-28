@@ -15,9 +15,9 @@ contract GuessOurBlockReceiver is IGuessOurBlock, Ownable, OAppReceiver {
     uint32 public constant MAX_BPS = 10_000;
     uint128 public constant TOO_LOW_BALANCE = 0.1e18;
     uint32 public constant ONE_DAY_IN_ETH_BLOCK = 7200;
+    uint32 public constant GROUP_SIZE = 10;
 
     address public treasury;
-    uint32 public groupSize;
     uint32 public minimumBlockAge;
     bool public isMigratingDripVault;
     bool public permanentlySetDripVault;
@@ -32,19 +32,12 @@ contract GuessOurBlockReceiver is IGuessOurBlock, Ownable, OAppReceiver {
     mapping(uint32 blockId => BlockMetadata) private blockDatas;
     mapping(address user => mapping(uint32 blockId => BlockAction)) private actions;
 
-    constructor(address _lzEndpoint, address _owner, address _treasury, address _dripVault)
-        OAppCore(_lzEndpoint, _owner)
-        Ownable(_owner)
-    {
-        if (_dripVault == address(0)) revert DripVaultCannotBeZero();
-
+    constructor(address _lzEndpoint, address _owner, address _treasury) OAppCore(_lzEndpoint, _owner) Ownable(_owner) {
         treasury = _treasury;
         fullWeightCost = 0.1 ether;
-        groupSize = 10;
         feeBps = FeeStructure({ treasury: 200, validator: 300, nextRound: 1500 });
 
         minimumBlockAge = ONE_DAY_IN_ETH_BLOCK;
-        dripVault = IDripVault(_dripVault);
     }
 
     /// @inheritdoc IGuessOurBlock
@@ -96,8 +89,8 @@ contract GuessOurBlockReceiver is IGuessOurBlock, Ownable, OAppReceiver {
         emit Guessed(msg.sender, _tailBlockNumber, guessWeight, _nativeSent);
     }
 
-    function _isValidTailBlockNumber(uint32 _tailBlockNumber) internal view returns (bool) {
-        return _tailBlockNumber % groupSize == 0;
+    function _isValidTailBlockNumber(uint32 _tailBlockNumber) internal pure returns (bool) {
+        return _tailBlockNumber % GROUP_SIZE == 0;
     }
 
     function _lzReceive(
@@ -113,7 +106,7 @@ contract GuessOurBlockReceiver is IGuessOurBlock, Ownable, OAppReceiver {
 
         (uint32 blockNumber, address validator) = abi.decode(_message, (uint32, address));
 
-        uint32 blockNumberTail = blockNumber - (blockNumber % groupSize);
+        uint32 blockNumberTail = blockNumber - (blockNumber % GROUP_SIZE);
         BlockMetadata storage blockMetadata = blockDatas[blockNumberTail];
 
         // Simply process the message to avoid LZ blockage.
@@ -200,13 +193,6 @@ contract GuessOurBlockReceiver is IGuessOurBlock, Ownable, OAppReceiver {
         emit MinimumBlockAgeUpdated(_minimumBlockAgeInBlock);
     }
 
-    function updateGroupSize(uint32 _groupSize) external onlyOwner {
-        if (_groupSize == 0) revert GroupSizeCannotBeZero();
-
-        groupSize = _groupSize;
-        emit GroupSizeUpdated(_groupSize);
-    }
-
     /**
      * @notice Update the drip vault address. Due of some drip vaults might contains withdrawal delay, we are sending
      * the fund to the treasury first.
@@ -218,14 +204,15 @@ contract GuessOurBlockReceiver is IGuessOurBlock, Ownable, OAppReceiver {
         if (_dripVault == address(0)) revert DripVaultCannotBeZero();
         if (isMigratingDripVault) revert AlreadyMigrating();
 
-        uint256 totalDeposit = dripVault.getTotalDeposit();
-        dripVault.withdraw(treasury, totalDeposit);
+        if (address(dripVault) != address(0)) {
+            uint256 totalDeposit = dripVault.getTotalDeposit();
+            dripVault.withdraw(treasury, totalDeposit);
+            isMigratingDripVault = true;
+            emit DripVaultMigrationStarted();
+        }
 
         dripVault = IDripVault(_dripVault);
-        isMigratingDripVault = true;
-
         emit DripVaultUpdated(_dripVault);
-        emit DripVaultMigrationStarted();
     }
 
     function completeDripVaultMigration() external onlyOwner {
@@ -274,9 +261,9 @@ contract GuessOurBlockReceiver is IGuessOurBlock, Ownable, OAppReceiver {
 
     function getLatestTail() external view override returns (uint32 latestTailBlock_) {
         uint32 latestBlock = uint32(block.number + minimumBlockAge);
-        latestTailBlock_ = latestBlock - (latestBlock % groupSize);
+        latestTailBlock_ = latestBlock - (latestBlock % GROUP_SIZE);
 
-        return latestTailBlock_ < block.number + minimumBlockAge ? latestTailBlock_ + groupSize : latestTailBlock_;
+        return latestTailBlock_ < block.number + minimumBlockAge ? latestTailBlock_ + GROUP_SIZE : latestTailBlock_;
     }
 
     function setTreasury(address _treasury) external onlyOwner {

@@ -24,7 +24,7 @@ interface IGuessOurBlock {
     event Donated(address indexed from, uint256 amount);
     event MinimumBlockAgeUpdated(uint32 minimumAgeInBlockNumber);
     event FeeUpdated(FeeStructure fee);
-    event GroupSizeUpdated(uint32 groupSize);
+    event GroupSizeUpdated(uint32 GROUP_SIZE);
     event ErrorBlockAlreadyCompleted(uint32 blockId);
     event DripVaultUpdated(address indexed dripVault);
     event DripVaultMigrationStarted();
