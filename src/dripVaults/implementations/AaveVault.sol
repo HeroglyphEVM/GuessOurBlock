@@ -21,13 +21,15 @@ interface IAaveV3Pool {
 
 contract AaveVault is BaseDripVault {
     IAaveV3Pool public immutable aaveV3Pool;
+    IERC20 public immutable aWETH;
     IWETH public immutable weth;
 
-    constructor(address _owner, address _gob, address _aaveV3Pool, address _weth, address _rateReceiver)
+    constructor(address _owner, address _gob, address _aaveV3Pool, address _aWETH, address _weth, address _rateReceiver)
         BaseDripVault(_owner, _gob, _rateReceiver)
     {
         aaveV3Pool = IAaveV3Pool(_aaveV3Pool);
         weth = IWETH(_weth);
+        aWETH = IERC20(_aWETH);
 
         weth.approve(_aaveV3Pool, type(uint256).max);
     }
@@ -38,19 +40,14 @@ contract AaveVault is BaseDripVault {
     }
 
     function _beforeWithdrawal(address _to, uint256 _amount) internal override {
-        uint256 exited = aaveV3Pool.withdraw(address(weth), type(uint256).max, address(this));
-
+        uint256 currentBalance = aWETH.balanceOf(address(this));
         uint256 cachedTotalDeposit = getTotalDeposit();
-        uint256 interest = exited - cachedTotalDeposit;
-        uint256 amountToSupply = cachedTotalDeposit - _amount;
+        uint256 interest = currentBalance - cachedTotalDeposit;
 
-        if (amountToSupply > 0) {
-            aaveV3Pool.supply(address(weth), amountToSupply, address(this), 0);
-        }
+        aaveV3Pool.withdraw(address(weth), _amount, address(this));
+        weth.withdraw(_amount);
 
-        weth.withdraw(_amount + interest);
-
-        _transfer(address(0), rateReceiver, interest);
+        _transfer(address(aWETH), rateReceiver, interest);
         _transfer(address(0), _to, _amount);
     }
 }
