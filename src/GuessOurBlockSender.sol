@@ -10,6 +10,8 @@ import { OAppCore, MessagingFee, MessagingReceipt } from "@layerzerolabs/lz-evm-
 contract GuessOurBlockSender is TickerOperator, OAppSender {
     using OptionsBuilder for bytes;
 
+    error GasLimitTooLow();
+
     event SendingWinningBlock(bytes32 indexed guid, uint32 indexed blockNumber, address indexed validator);
     event LzEndpointReceiverIdUpdated(uint32 indexed lzEndpointReceiverId);
 
@@ -47,7 +49,10 @@ contract GuessOurBlockSender is TickerOperator, OAppSender {
     }
 
     function updateLzGasLimit(uint32 _gasLimit) external onlyOwner {
+        if (_gasLimit < 50_000) revert GasLimitTooLow();
+
         lzGasLimit = _gasLimit;
+        defaultLzOption = OptionsBuilder.newOptions().addExecutorLzReceiveOption(lzGasLimit, 0);
     }
 
     function updateLzEndpointReceiverId(uint32 _lzEndpointReceiverId) external onlyOwner {
