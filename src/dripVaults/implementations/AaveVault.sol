@@ -20,9 +20,13 @@ interface IAaveV3Pool {
 }
 
 contract AaveVault is BaseDripVault {
+    event ReferalCodeUpdated(uint16 referalCode);
+
     IAaveV3Pool public immutable aaveV3Pool;
     IERC20 public immutable aWETH;
     IWETH public immutable weth;
+
+    uint16 public referalCode = 0;
 
     constructor(address _owner, address _gob, address _aaveV3Pool, address _aWETH, address _weth, address _rateReceiver)
         BaseDripVault(_owner, _gob, _rateReceiver)
@@ -36,7 +40,7 @@ contract AaveVault is BaseDripVault {
 
     function _afterDeposit(uint256 _amount) internal override {
         weth.deposit{ value: _amount }();
-        aaveV3Pool.supply(address(weth), _amount, address(this), 0);
+        aaveV3Pool.supply(address(weth), _amount, address(this), referalCode);
     }
 
     function _beforeWithdrawal(address _to, uint256 _amount) internal override {
@@ -49,5 +53,10 @@ contract AaveVault is BaseDripVault {
 
         _transfer(address(aWETH), rateReceiver, interest);
         _transfer(address(0), _to, _amount);
+    }
+
+    function setReferalCode(uint16 _referalCode) external onlyOwner {
+        referalCode = _referalCode;
+        emit ReferalCodeUpdated(referalCode);
     }
 }
