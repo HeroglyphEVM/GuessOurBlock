@@ -315,7 +315,7 @@ contract GuessOurBlockReceiverTest is BaseTest {
         underTest.exposed_lzReceiver(generateOrigin(), abi.encode(winningBlock, validator));
     }
 
-    function test_lzReceive_whenBlockWinsButInMigrations_thenCallEvents() external prankAs(user_A) {
+    function test_lzReceive_whenBlockWinsButInMigrations_thenIgnores() external prankAs(user_A) {
         uint32 winningBlock = 999_322;
         uint32 sanitizedBlock = winningBlock - winningBlock % GROUP_SIZE;
         uint128 donate = 23e18;
@@ -323,14 +323,12 @@ contract GuessOurBlockReceiverTest is BaseTest {
         vm.expectCall(mockDripVault, donate, abi.encodeWithSelector(IDripVault.deposit.selector));
         underTest.donate{ value: donate }();
 
-        bytes32 guid = underTest.MOCKED_GUID();
-
         changePrank(owner);
         underTest.updateDripVault(generateAddress());
 
-        expectExactEmit();
-        emit IGuessOurBlock.BlockWon(guid, sanitizedBlock, donate);
         underTest.exposed_lzReceiver(generateOrigin(), abi.encode(winningBlock, validator));
+
+        assertFalse(underTest.getBlockData(sanitizedBlock).isCompleted);
     }
 
     function test_lzReceive_givenAtLeastAWinner_whenRewardIsTooLowerForNextRound_thenGivesAll() external {
