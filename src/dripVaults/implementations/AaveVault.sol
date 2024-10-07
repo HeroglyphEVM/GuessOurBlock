@@ -49,10 +49,9 @@ contract AaveVault is BaseDripVault {
         uint256 interest = currentBalance - cachedTotalDeposit;
 
         aaveV3Pool.withdraw(address(weth), _amount, address(this));
-        weth.withdraw(_amount);
 
         _transfer(address(aWETH), rateReceiver, interest);
-        _transfer(address(0), _to, _amount);
+        _transfer(address(weth), _to, _amount);
     }
 
     function setReferalCode(uint16 _referalCode) external onlyOwner {
