@@ -11,6 +11,7 @@ contract GuessOurBlockSender is TickerOperator, OAppSender {
     using OptionsBuilder for bytes;
 
     error GasLimitTooLow();
+    error NotEnoughToPayLayerZero();
 
     event SendingWinningBlock(bytes32 indexed guid, uint32 indexed blockNumber, address indexed validator);
     event LzEndpointReceiverIdUpdated(uint32 indexed lzEndpointReceiverId);
@@ -43,9 +44,20 @@ contract GuessOurBlockSender is TickerOperator, OAppSender {
         bytes memory option = defaultLzOption;
         bytes memory payload = abi.encode(_blockNumber, _validatorWithdrawer);
         MessagingFee memory fee = _quote(lzEndpointReceiverId, payload, option, false);
-        MessagingReceipt memory msgReceipt = _lzSend(lzEndpointReceiverId, payload, option, fee, payable(address(this)));
 
+        if (!_askFeePayerToPay(address(this), uint128(fee.nativeFee))) revert NotEnoughToPayLayerZero();
+
+        MessagingReceipt memory msgReceipt = _lzSend(lzEndpointReceiverId, payload, option, fee, payable(address(this)));
         emit SendingWinningBlock(msgReceipt.guid, _blockNumber, _validatorWithdrawer);
+    }
+
+    function _payNative(uint256 _nativeFee) internal override returns (uint256 nativeFee) {
+        uint256 balance = address(this).balance;
+
+        if (msg.value != 0 && msg.value != _nativeFee) revert NotEnoughNative(msg.value);
+        if (msg.value == 0 && balance < _nativeFee) revert NotEnoughNative(balance);
+
+        return _nativeFee;
     }
 
     function updateLzGasLimit(uint32 _gasLimit) external onlyOwner {
