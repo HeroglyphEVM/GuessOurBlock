@@ -68,9 +68,10 @@ contract GuessOurBlockReceiverTest is BaseTest {
 
     function test_guess_givenInvalidAmount_thenReverts() external prankAs(user_A) {
         uint32 latestTailBlock = underTest.getLatestTail();
+        uint128 minimumAmount = underTest.MINIMUM_GUESS_AMOUNT();
 
         vm.expectRevert(IGuessOurBlock.InvalidAmount.selector);
-        underTest.guess{ value: 0 }(latestTailBlock);
+        underTest.guess{ value: minimumAmount - 1 }(latestTailBlock);
     }
 
     function test_guess_givenOldBlock_thenReverts() external prankAs(user_A) {
@@ -96,8 +97,10 @@ contract GuessOurBlockReceiverTest is BaseTest {
     }
 
     function test_updateMinimumBlockAge_givenTooLow_thenReverts() external prankAs(owner) {
-        vm.expectRevert(IGuessOurBlock.MinimumBlockAgeCannotBeLowerThanOneDay.selector);
-        underTest.updateMinimumBlockAge(7199);
+        uint32 minimumBlockAge = underTest.MINIMUM_BLOCK_AGE();
+
+        vm.expectRevert(IGuessOurBlock.MinimumBlockAgeCannotBeLowerThanOneEpoch.selector);
+        underTest.updateMinimumBlockAge(minimumBlockAge - 1);
     }
 
     function test_guess_givenInvalidTail_thenReverts() external prankAs(user_A) {
@@ -224,7 +227,7 @@ contract GuessOurBlockReceiverTest is BaseTest {
         guesses[0] = 1e18;
         guesses[1] = 1e18;
 
-        vm.expectRevert(IGuessOurBlock.BlockTooSoon.selector);
+        vm.expectRevert(IGuessOurBlock.BlockTooOld.selector);
         underTest.multiGuess{ value: 2e18 }(blocks, guesses);
     }
 

@@ -14,7 +14,9 @@ contract GuessOurBlockReceiver is IGuessOurBlock, Ownable, OAppReceiver {
     uint256 private constant PRECISION = 1e18;
     uint32 public constant MAX_BPS = 10_000;
     uint128 public constant TOO_LOW_BALANCE = 0.1e18;
-    uint32 public constant ONE_DAY_IN_ETH_BLOCK = 7200;
+    uint128 public constant MINIMUM_GUESS_AMOUNT = 0.005 ether;
+    // Validator can know their next block at least 1 Epoch (32 blocks) in advance.
+    uint32 public constant MINIMUM_BLOCK_AGE = 33;
     uint32 public constant GROUP_SIZE = 10;
 
     address public treasury;
@@ -37,7 +39,8 @@ contract GuessOurBlockReceiver is IGuessOurBlock, Ownable, OAppReceiver {
         fullWeightCost = 0.1 ether;
         feeBps = FeeStructure({ treasury: 200, validator: 300, nextRound: 1500 });
 
-        minimumBlockAge = ONE_DAY_IN_ETH_BLOCK;
+        // Note: Even if the minimum block age is 33, we are setting it to two epoch to be safe
+        minimumBlockAge = MINIMUM_BLOCK_AGE * 2;
     }
 
     /// @inheritdoc IGuessOurBlock
@@ -68,7 +71,7 @@ contract GuessOurBlockReceiver is IGuessOurBlock, Ownable, OAppReceiver {
     }
 
     function _guess(uint32 _tailBlockNumber, uint128 _nativeSent) internal {
-        if (_nativeSent == 0) revert InvalidAmount();
+        if (_nativeSent < MINIMUM_GUESS_AMOUNT) revert InvalidAmount();
         if (!_isValidTailBlockNumber(_tailBlockNumber)) revert InvalidTailBlockNumber();
 
         //We estimated the timestamp, which will be inaccurate, but we don't need it to be.
@@ -192,7 +195,7 @@ contract GuessOurBlockReceiver is IGuessOurBlock, Ownable, OAppReceiver {
     }
 
     function updateMinimumBlockAge(uint32 _minimumBlockAgeInBlock) external onlyOwner {
-        if (_minimumBlockAgeInBlock < ONE_DAY_IN_ETH_BLOCK) revert MinimumBlockAgeCannotBeLowerThanOneDay();
+        if (_minimumBlockAgeInBlock < MINIMUM_BLOCK_AGE) revert MinimumBlockAgeCannotBeLowerThanOneEpoch();
 
         minimumBlockAge = _minimumBlockAgeInBlock;
         emit MinimumBlockAgeUpdated(_minimumBlockAgeInBlock);
