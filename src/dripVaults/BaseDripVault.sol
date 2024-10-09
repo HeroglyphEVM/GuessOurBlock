@@ -21,7 +21,7 @@ abstract contract BaseDripVault is IDripVault, Ownable, ReentrancyGuard {
         rateReceiver = _rateReceiver;
     }
 
-    function deposit() external payable override onlyGob {
+    function deposit() external payable override nonReentrant onlyGob {
         if (msg.value == 0) revert InvalidAmount();
         totalDeposit += msg.value;
 
