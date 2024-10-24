@@ -43,8 +43,10 @@ contract GOBDeploy is BaseScript {
                 revert("Receiver not deployed on ethereum");
             }
 
-            vm.broadcast(_getDeployerAddress());
+            vm.startBroadcast(_getDeployerAddress());
             GuessOurBlockSender(payable(sender)).setPeer(config.receiverLzId, bytes32(abi.encode(receiver)));
+            GuessOurBlockSender(payable(sender)).setDelegate(config.owner);
+            vm.stopBroadcast();
         }
         // Ethereum
         else if (block.chainid == 1) {
@@ -58,8 +60,10 @@ contract GOBDeploy is BaseScript {
                 revert("Sender not deployed on arbitrum");
             }
 
-            vm.broadcast(_getDeployerAddress());
+            vm.startBroadcast(_getDeployerAddress());
             GuessOurBlockReceiver(payable(receiver)).setPeer(config.senderLzId, bytes32(abi.encode(sender)));
+            GuessOurBlockSender(payable(sender)).setDelegate(config.owner);
+            vm.stopBroadcast();
         }
     }
 }

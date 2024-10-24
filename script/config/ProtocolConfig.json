@@ -10,7 +10,7 @@
     },
     "ethereum":
     {
- "01_owner": "0x888D768764A2E304215247F0bA3457cCb0f0ab4f",
+        "01_owner": "0x888D768764A2E304215247F0bA3457cCb0f0ab4f",
         "02_treasury": "0x888D768764A2E304215247F0bA3457cCb0f0ab4f",
         "03_senderLzId": "30_110",
         "04_receiverLzId": "30_101",
