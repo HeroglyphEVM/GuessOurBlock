@@ -18,6 +18,7 @@ contract GOBAaveDripE2E is BaseTest {
     address private user;
     address private aavePool = 0x87870Bca3F3fD6335C3F4ce8392D69350B4fA4E2;
     address private weth = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
+    address private aWETH = 0x4d5F47FA6A74757f35C14fD3a6Ef8E3C9BC514E8;
 
     uint256 private fork;
 
@@ -25,13 +26,13 @@ contract GOBAaveDripE2E is BaseTest {
         fork = vm.createSelectFork(vm.envString("RPC_MAINNET"));
         prepareTest();
 
-        aaveDripVault = new AaveVault(owner, address(0), aavePool, weth, treasury);
+        aaveDripVault = new AaveVault(owner, address(0), aavePool, aWETH, weth, treasury);
 
         vm.mockCall(mockLzEndpoint, abi.encodeWithSignature("setDelegate(address)"), abi.encode(true));
-        underTest = new GuessOurBlockReceiverHarness(mockLzEndpoint, owner, treasury, address(aaveDripVault));
+        underTest = new GuessOurBlockReceiverHarness(mockLzEndpoint, owner, treasury);
 
         vm.prank(owner);
-        aaveDripVault.setGob(address(underTest));
+        underTest.updateDripVault(address(aaveDripVault));
 
         skip(1 weeks);
     }
@@ -80,8 +81,8 @@ contract GOBAaveDripE2E is BaseTest {
 contract GuessOurBlockReceiverHarness is GuessOurBlockReceiver {
     bytes32 public constant MOCKED_GUID = keccak256("HelloWorld");
 
-    constructor(address _lzEndpoint, address _owner, address _treasury, address _dripVault)
-        GuessOurBlockReceiver(_lzEndpoint, _owner, _treasury, _dripVault)
+    constructor(address _lzEndpoint, address _owner, address _treasury)
+        GuessOurBlockReceiver(_lzEndpoint, _owner, _treasury)
     { }
 
     function exposed_lzReceiver(Origin calldata _origin, bytes calldata _message) external {

@@ -8,26 +8,23 @@ interface IGuessOurBlock {
     error MismatchArrays();
     error AlreadyClaimed();
     error NoReward();
-    error RoundNotStarted();
     error ExceedBPSMaximum();
     error InvalidTailBlockNumber();
     error CanNoLongerUpdateDripVault();
     error DripVaultCannotBeZero();
-    error InvalidSender();
     error AlreadyMigrating();
     error TreasuryCannotBeZero();
     error FullWeightCostCannotBeZero();
     error GroupSizeCannotBeZero();
-    error MinimumBlockAgeCannotBeLowerThanOneDay();
+    error MinimumBlockAgeCannotBeLowerThanOneEpoch();
 
     event BlockWon(bytes32 indexed lzGuid, uint32 indexed blockId, uint128 lot);
     event Guessed(address indexed wallet, uint32 indexed blockId, uint128 guessWeight, uint128 nativeSent);
     event Claimed(address indexed wallet, uint32 indexed blockId, uint128 winningPot);
     event Donated(address indexed from, uint256 amount);
     event MinimumBlockAgeUpdated(uint32 minimumAgeInBlockNumber);
-    event RoundPauseTimerUpdated(uint32 pauseTimer);
     event FeeUpdated(FeeStructure fee);
-    event GroupSizeUpdated(uint32 groupSize);
+    event GroupSizeUpdated(uint32 GROUP_SIZE);
     event ErrorBlockAlreadyCompleted(uint32 blockId);
     event DripVaultUpdated(address indexed dripVault);
     event DripVaultMigrationStarted();

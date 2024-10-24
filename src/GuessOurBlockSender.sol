@@ -2,7 +2,6 @@
 pragma solidity ^0.8.0;
 
 import { TickerOperator } from "heroglyph-library/src/TickerOperator.sol";
-import { Math } from "@openzeppelin/contracts/utils/math/Math.sol";
 
 import { OAppSender } from "@layerzerolabs/lz-evm-oapp-v2/contracts/oapp/OAppSender.sol";
 import { OptionsBuilder } from "@layerzerolabs/lz-evm-oapp-v2/contracts/oapp/libs/OptionsBuilder.sol";
@@ -11,8 +10,12 @@ import { OAppCore, MessagingFee, MessagingReceipt } from "@layerzerolabs/lz-evm-
 contract GuessOurBlockSender is TickerOperator, OAppSender {
     using OptionsBuilder for bytes;
 
+    error GasLimitTooLow();
+    error NotEnoughToPayLayerZero();
+
     event SendingWinningBlock(bytes32 indexed guid, uint32 indexed blockNumber, address indexed validator);
     event LzEndpointReceiverIdUpdated(uint32 indexed lzEndpointReceiverId);
+    event LzGasLimitUpdated(uint32 lzGasLimit);
 
     uint32 public lzGasLimit;
     uint32 public lzEndpointReceiverId;
@@ -42,13 +45,29 @@ contract GuessOurBlockSender is TickerOperator, OAppSender {
         bytes memory option = defaultLzOption;
         bytes memory payload = abi.encode(_blockNumber, _validatorWithdrawer);
         MessagingFee memory fee = _quote(lzEndpointReceiverId, payload, option, false);
-        MessagingReceipt memory msgReceipt = _lzSend(lzEndpointReceiverId, payload, option, fee, payable(address(this)));
 
+        if (!_askFeePayerToPay(address(this), uint128(fee.nativeFee))) revert NotEnoughToPayLayerZero();
+
+        MessagingReceipt memory msgReceipt = _lzSend(lzEndpointReceiverId, payload, option, fee, payable(address(this)));
         emit SendingWinningBlock(msgReceipt.guid, _blockNumber, _validatorWithdrawer);
     }
 
+    function _payNative(uint256 _nativeFee) internal override returns (uint256 nativeFee) {
+        uint256 balance = address(this).balance;
+
+        if (msg.value != 0 && msg.value != _nativeFee) revert NotEnoughNative(msg.value);
+        if (msg.value == 0 && balance < _nativeFee) revert NotEnoughNative(balance);
+
+        return _nativeFee;
+    }
+
     function updateLzGasLimit(uint32 _gasLimit) external onlyOwner {
+        if (_gasLimit < 50_000) revert GasLimitTooLow();
+
         lzGasLimit = _gasLimit;
+        defaultLzOption = OptionsBuilder.newOptions().addExecutorLzReceiveOption(lzGasLimit, 0);
+
+        emit LzGasLimitUpdated(_gasLimit);
     }
 
     function updateLzEndpointReceiverId(uint32 _lzEndpointReceiverId) external onlyOwner {
