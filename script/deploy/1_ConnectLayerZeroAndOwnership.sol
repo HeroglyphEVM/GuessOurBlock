@@ -46,6 +46,7 @@ contract GOBDeploy is BaseScript {
             vm.startBroadcast(_getDeployerAddress());
             GuessOurBlockSender(payable(sender)).setPeer(config.receiverLzId, bytes32(abi.encode(receiver)));
             GuessOurBlockSender(payable(sender)).setDelegate(config.owner);
+            GuessOurBlockSender(payable(sender)).transferOwnership(config.owner);
             vm.stopBroadcast();
         }
         // Ethereum
@@ -62,7 +63,8 @@ contract GOBDeploy is BaseScript {
 
             vm.startBroadcast(_getDeployerAddress());
             GuessOurBlockReceiver(payable(receiver)).setPeer(config.senderLzId, bytes32(abi.encode(sender)));
-            GuessOurBlockSender(payable(sender)).setDelegate(config.owner);
+            GuessOurBlockReceiver(payable(sender)).setDelegate(config.owner);
+            GuessOurBlockReceiver(payable(sender)).transferOwnership(config.owner);
             vm.stopBroadcast();
         }
     }

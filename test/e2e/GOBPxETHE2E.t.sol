@@ -4,7 +4,7 @@ pragma solidity ^0.8.4;
 import { Origin } from "@layerzerolabs/lz-evm-oapp-v2/contracts/oapp/OApp.sol";
 import "../base/BaseTest.t.sol";
 import { GuessOurBlockReceiver } from "src/GuessOurBlockReceiver.sol";
-import { apxETHVault } from "src/dripVaults/implementations/apxETHVault.sol";
+import { ApxETHVault } from "src/dripVaults/implementations/ApxETHVault.sol";
 
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
@@ -15,7 +15,7 @@ contract GOBPxETHE2E is BaseTest {
     address private validator;
     address private treasury;
     address private mockLzEndpoint;
-    apxETHVault private apxEthVault;
+    ApxETHVault private apxEthVault;
 
     address private user;
     IERC20 private autoPirex = IERC20(0x9Ba021B0a9b958B5E75cE9f6dff97C7eE52cb3E6);
@@ -27,7 +27,7 @@ contract GOBPxETHE2E is BaseTest {
         fork = vm.createSelectFork(vm.envString("RPC_MAINNET"));
         prepareTest();
 
-        apxEthVault = new apxETHVault(owner, address(0), address(autoPirex), treasury);
+        apxEthVault = new ApxETHVault(owner, address(0), address(autoPirex), treasury);
 
         vm.mockCall(mockLzEndpoint, abi.encodeWithSignature("setDelegate(address)"), abi.encode(true));
         underTest = new GuessOurBlockReceiverHarness(mockLzEndpoint, owner, treasury);

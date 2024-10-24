@@ -4,7 +4,7 @@ pragma solidity ^0.8.25;
 import "../BaseScript.sol";
 import { GuessOurBlockReceiver } from "src/GuessOurBlockReceiver.sol";
 import { GuessOurBlockSender } from "src/GuessOurBlockSender.sol";
-import { apxETHVault } from "src/dripVaults/implementations/apxETHVault.sol";
+import { ApxETHVault } from "src/dripVaults/implementations/ApxETHVault.sol";
 import { MockVault } from "src/dripVaults/implementations/MockVault.sol";
 
 contract GOBDeploy is BaseScript {
@@ -58,7 +58,7 @@ contract GOBDeploy is BaseScript {
             (vault, vaultExists) = _tryDeployContract(
                 APX_ETH_CONTRACT_NAME,
                 0,
-                type(apxETHVault).creationCode,
+                type(ApxETHVault).creationCode,
                 abi.encode(_getDeployerAddress(), gobReceiver, APX_ETH, config.treasury)
             );
         }
@@ -107,7 +107,7 @@ contract GOBDeploy is BaseScript {
                 assert(address(gobReceiverContract.endpoint()) == config.receiverLzEndpoint);
             }
             if (!vaultExists) {
-                apxETHVault vaultContract = apxETHVault(payable(vault));
+                ApxETHVault vaultContract = ApxETHVault(payable(vault));
 
                 assert(vaultContract.owner() == _getDeployerAddress());
                 assert(vaultContract.gob() == gobReceiver);
