@@ -43,7 +43,7 @@ contract GOBDeploy is BaseScript {
                 revert("Receiver not deployed on ethereum");
             }
 
-            vm.startBroadcast(_getDeployerAddress());
+            vm.startBroadcast(_getDeployerPrivateKey());
             GuessOurBlockSender(payable(sender)).setPeer(config.receiverLzId, bytes32(abi.encode(receiver)));
             GuessOurBlockSender(payable(sender)).setDelegate(config.owner);
             GuessOurBlockSender(payable(sender)).transferOwnership(config.owner);
@@ -61,10 +61,10 @@ contract GOBDeploy is BaseScript {
                 revert("Sender not deployed on arbitrum");
             }
 
-            vm.startBroadcast(_getDeployerAddress());
+            vm.startBroadcast(_getDeployerPrivateKey());
             GuessOurBlockReceiver(payable(receiver)).setPeer(config.senderLzId, bytes32(abi.encode(sender)));
-            GuessOurBlockReceiver(payable(sender)).setDelegate(config.owner);
-            GuessOurBlockReceiver(payable(sender)).transferOwnership(config.owner);
+            GuessOurBlockReceiver(payable(receiver)).setDelegate(config.owner);
+            GuessOurBlockReceiver(payable(receiver)).transferOwnership(config.owner);
             vm.stopBroadcast();
         }
     }

@@ -15,6 +15,7 @@ contract GOBDeploy is BaseScript {
     string private constant MOCK_VAULT_CONTRACT_NAME = "MockVault";
     address private constant HEROGLYPH_RELAY = 0xa30cCE750cbE9664A0e46C323Fa2ed5376B25A93;
     address private constant APX_ETH = 0x9Ba021B0a9b958B5E75cE9f6dff97C7eE52cb3E6;
+    address private constant GAS_POOL = 0xe7fcF5465253eBBc47472ECc9708E23d1Bc4958F;
 
     struct ProtocolConfig {
         address owner;
@@ -40,11 +41,19 @@ contract GOBDeploy is BaseScript {
 
         // Arbitrum
         if (block.chainid == 42_161) {
+            console.logBytes(
+                abi.encode(
+                    config.receiverLzId, config.senderLzEndpoint, HEROGLYPH_RELAY, _getDeployerAddress(), GAS_POOL
+                )
+            );
+
             (gobSender, gobSenderExists) = _tryDeployContract(
                 GOB_SENDER_CONTRACT_NAME,
                 0,
                 type(GuessOurBlockSender).creationCode,
-                abi.encode(config.receiverLzId, config.senderLzEndpoint, HEROGLYPH_RELAY, _getDeployerAddress())
+                abi.encode(
+                    config.receiverLzId, config.senderLzEndpoint, HEROGLYPH_RELAY, _getDeployerAddress(), GAS_POOL
+                )
             );
         }
         // Ethereum

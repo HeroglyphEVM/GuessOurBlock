@@ -1,15 +1,7 @@
 ds-test/=node_modules/@layerzerolabs/toolbox-foundry/lib/ds-test/
 forge-std/=node_modules/@layerzerolabs/toolbox-foundry/lib/forge-std/src/
 @layerzerolabs/=node_modules/@layerzerolabs/
-@openzeppelin/=node_modules/@openzeppelin/
-@axelar-network/=node_modules/@axelar-network/
-@chainlink/=node_modules/@chainlink/
-@eth-optimism/=node_modules/@eth-optimism/
 @openzeppelin/contracts/=node_modules/@layerzerolabs/toolbox-foundry/lib/openzeppelin-contracts/contracts/
-erc4626-tests/=node_modules/@layerzerolabs/toolbox-foundry/lib/openzeppelin-contracts/lib/erc4626-tests/
-halmos-cheatcodes/=node_modules/@layerzerolabs/toolbox-foundry/lib/openzeppelin-contracts/lib/halmos-cheatcodes/
-hardhat-deploy/=node_modules/hardhat-deploy/
-hardhat/=node_modules/hardhat/
 heroglyph-library/=node_modules/@layerzerolabs/toolbox-foundry/lib/heroglyph-library/
 openzeppelin-contracts/=node_modules/@layerzerolabs/toolbox-foundry/lib/openzeppelin-contracts/
 solidity-bytes-utils/=node_modules/solidity-bytes-utils/
