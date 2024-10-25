@@ -17,7 +17,7 @@ interface IPirexEth {
         returns (uint256 postFeeAmount, uint256 feeAmount);
 }
 
-contract apxETHVault is BaseDripVault {
+contract ApxETHVault is BaseDripVault {
     IApxETH public immutable apxETH;
     IPirexEth public immutable pirexEth;
 

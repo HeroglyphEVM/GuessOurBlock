@@ -13,3 +13,7 @@ With approximately 6.4 Heroglyph blocks per day and 7200 blocks in total, one gu
 
 ## How to Play
 Make guesses in multiples of 10 blocks. Choose an Ethereum block number and hope that one of the block producers is a Heroglyph validator with the ticker.
+
+## Audit
+- [yAudit](https://reports.yaudit.dev/reports/10-2024-GuessOurBlock/)
+- [0xmacro](https://0xmacro.com/library/audits/heroglyphs-1)

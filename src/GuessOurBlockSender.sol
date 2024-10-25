@@ -22,10 +22,13 @@ contract GuessOurBlockSender is TickerOperator, OAppSender {
     uint32 public latestMintedBlock;
     bytes public defaultLzOption;
 
-    constructor(uint32 _lzEndpointReceiverId, address _lzEndpoint, address _heroglyphRelay, address _owner)
-        TickerOperator(_owner, _heroglyphRelay, address(0))
-        OAppCore(_lzEndpoint, _owner)
-    {
+    constructor(
+        uint32 _lzEndpointReceiverId,
+        address _lzEndpoint,
+        address _heroglyphRelay,
+        address _owner,
+        address _feePayer
+    ) TickerOperator(_owner, _heroglyphRelay, _feePayer) OAppCore(_lzEndpoint, _owner) {
         lzEndpointReceiverId = _lzEndpointReceiverId;
         lzGasLimit = 200_000;
         defaultLzOption = OptionsBuilder.newOptions().addExecutorLzReceiveOption(lzGasLimit, 0);

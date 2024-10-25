@@ -1,0 +1,10 @@
+[
+  {
+    "contractAddress": "0xb13AaE26669f809fe8c7927138F6820F0DffDE00",
+    "contractName": "GOBReceiver"
+  },
+  {
+    "contractAddress": "0x727e92242BA1c978D9daB9321772714Dd0783B5a",
+    "contractName": "ApxEth"
+  }
+]
