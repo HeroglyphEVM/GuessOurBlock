@@ -2,5 +2,9 @@
   {
     "contractAddress": "0x2294B7FCdFc70977E089dC8e71aF238eA463ebE8",
     "contractName": "GOBSender"
+  },
+  {
+    "contractAddress": "0xBE4243D8e485b06D4bA005Af092Eae86C6580e48",
+    "contractName": "Hero3D"
   }
 ]
