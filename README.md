@@ -4,7 +4,7 @@
 ## How It Works
 The Heroglyph Protocol lets validators run on-chain code using their Node's graffiti. A block is considered a win if the proposer has the Hero3D ticker in their graffiti.
 
-![Protocol Flow](docs/ProtocolFlow.png)
+![Protocol Flow](docs/ProtocolFlow.svg)
 
 
 ## Winning Probability
