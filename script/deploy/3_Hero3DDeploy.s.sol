@@ -7,7 +7,7 @@ import { Hero3D } from "src/Hero3D.sol";
 contract Hero3DDeployScript is BaseScript {
     string private constant CONFIG_FILE = "ProtocolConfig";
     string private constant HERO3D_CONTRACT_NAME = "Hero3D";
-    address private constant HEROGLYPH_RELAY = 0xa30cCE750cbE9664A0e46C323Fa2ed5376B25A93;
+    address private constant HEROGLYPH_RELAY = 0x93bBb73805753DE4E740e6C5f6dEeD86e93c5042;
 
     struct ProtocolConfig {
         address owner;

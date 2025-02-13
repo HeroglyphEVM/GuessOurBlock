@@ -2,7 +2,7 @@
 pragma solidity ^0.8.0;
 
 import { IHero3D } from "./IHero3D.sol";
-import { TickerOperator } from "heroglyph-library/src/TickerOperator.sol";
+import { HeroglyphListener } from "heroglyph-library/src/HeroglyphsRemastered/HeroglyphListener.sol";
 import { Math } from "@openzeppelin/contracts/utils/math/Math.sol";
 import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
 
@@ -14,13 +14,13 @@ import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
  * @dev Arbitrum block.number reflects Ethereum Mainnet blocks;
  * https://docs.arbitrum.io/build-decentralized-apps/arbitrum-vs-ethereum/block-numbers-and-time#arbitrum-block-numbers
  */
-contract Hero3D is IHero3D, Ownable, TickerOperator {
+contract Hero3D is IHero3D, Ownable, HeroglyphListener {
     uint256 private constant PRECISION = 1e18;
     uint32 public constant MAX_BPS = 10_000;
-    uint128 public constant TOO_LOW_BALANCE = 0.1e18;
-    uint128 public constant MINIMUM_GUESS_AMOUNT = 0.005 ether;
-    // Validator can know their next block at least 1 Epoch (32 blocks) in advance.
-    uint32 public constant MINIMUM_BLOCK_AGE = 33;
+    uint128 public constant TOO_LOW_BALANCE = 10e18;
+    uint128 public constant MINIMUM_GUESS_AMOUNT = 0.25 ether;
+    // Validator can know their next block at least 1 Epoch (16 blocks) in advance.
+    uint32 public constant MINIMUM_BLOCK_AGE = 16;
     uint32 public constant GROUP_SIZE = 10;
 
     address public treasury;
@@ -36,13 +36,13 @@ contract Hero3D is IHero3D, Ownable, TickerOperator {
     mapping(address user => mapping(uint32 blockId => BlockAction)) private actions;
 
     constructor(address _heroglyphRelay, address _owner, address _treasury)
-        TickerOperator(_owner, _heroglyphRelay, address(0))
+        HeroglyphListener(_owner, _heroglyphRelay, address(0))
     {
         treasury = _treasury;
-        fullWeightCost = 0.1 ether;
-        feeBps = FeeStructure({ treasury: 200, validator: 300, nextRound: 1500 });
+        fullWeightCost = 1 ether;
+        feeBps = FeeStructure({ treasury: 200, validator: 2000, nextRound: 2000 });
 
-        // Note: Even if the minimum block age is 33, we are setting it to two epoch to be safe
+        // Note: Even if the minimum block age is 17, we are setting it to two epoch to be safe
         minimumBlockAge = MINIMUM_BLOCK_AGE * 2;
     }
 
@@ -97,11 +97,13 @@ contract Hero3D is IHero3D, Ownable, TickerOperator {
         return _tailBlockNumber % GROUP_SIZE == 0;
     }
 
-    function onValidatorTriggered(uint32, uint32 _blockNumber, address _validatorWithdrawer, uint128 _heroglyphFee)
-        external
-        override
-        onlyRelay
-    {
+    function onValidatorTriggered(
+        address _validatorWithdrawer,
+        uint32 _blockNumber,
+        uint32, /*_tickerId*/
+        uint128, /*_validatorBalance*/
+        uint128 _heroglyphFee
+    ) external onlyRelay {
         _repayHeroglyph(_heroglyphFee);
 
         FeeStructure memory cachedFee = feeBps;
@@ -139,7 +141,7 @@ contract Hero3D is IHero3D, Ownable, TickerOperator {
         uint128 validatorTax = uint128(Math.mulDiv(winningLot, cachedFee.validator, MAX_BPS));
         uint128 nextRound = uint128(Math.mulDiv(winningLot, cachedFee.nextRound, MAX_BPS));
 
-        if (nextRound > TOO_LOW_BALANCE) {
+        if ((nextRound + newLot) > TOO_LOW_BALANCE) {
             newLot += nextRound;
             winningLot -= nextRound;
         }

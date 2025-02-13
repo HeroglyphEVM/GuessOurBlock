@@ -7,7 +7,7 @@ import { Math } from "@openzeppelin/contracts/utils/math/Math.sol";
 import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
 
 contract Hero3DTest is BaseTest {
-    uint128 private constant COST = 0.1 ether;
+    uint128 private constant COST = 1 ether;
     uint32 private constant OLDEST_BLOCK = 392_813;
     uint32 private constant ONE_DAY_BLOCKS = 7200;
     uint32 public constant MAX_BPS = 10_000;
@@ -20,7 +20,7 @@ contract Hero3DTest is BaseTest {
     address private validator;
     address private treasury;
 
-    IHero3D.FeeStructure DEFAULT_FEE = IHero3D.FeeStructure({ treasury: 200, validator: 300, nextRound: 1500 });
+    IHero3D.FeeStructure DEFAULT_FEE = IHero3D.FeeStructure({ treasury: 200, validator: 2000, nextRound: 2000 });
 
     Hero3D private underTest;
 
@@ -35,8 +35,8 @@ contract Hero3DTest is BaseTest {
 
     function prepareTest() internal {
         owner = generateAddress("Owner");
-        user_A = generateAddress("User A", 100e18);
-        user_B = generateAddress("User B", 100e18);
+        user_A = generateAddress("User A", 1_000_000e18);
+        user_B = generateAddress("User B", 1_000_000e18);
         validator = generateAddress("Validator");
         treasury = generateAddress("Treasury");
         mockRelayer = generateAddress("Relayer");
@@ -102,7 +102,7 @@ contract Hero3DTest is BaseTest {
         uint32 blockId_Two = underTest.getLatestTail() + GROUP_SIZE;
 
         uint128 sendingEth_One = 0.8 ether;
-        uint128 sendingEth_Two = 0.05 ether;
+        uint128 sendingEth_Two = 0.5 ether;
         uint128 sendingEth_Three = 0.25 ether;
 
         uint128 weight_One = getGuessWeight(sendingEth_One);
@@ -237,7 +237,7 @@ contract Hero3DTest is BaseTest {
         blocks[2] = underTest.getLatestTail() + 200;
 
         uint128[] memory guesses = new uint128[](3);
-        guesses[0] = 0.1e18;
+        guesses[0] = 0.25e18;
         guesses[1] = 0.3e18;
         guesses[2] = 0.5e18;
 
@@ -279,7 +279,7 @@ contract Hero3DTest is BaseTest {
         uint32 sanitizedBlock = winningBlock - winningBlock % GROUP_SIZE;
 
         changePrank(mockRelayer);
-        underTest.onValidatorTriggered(0, winningBlock, validator, 0);
+        underTest.onValidatorTriggered(validator, winningBlock, 0, 0, 0);
         changePrank(user_A);
 
         skip(10 weeks);
@@ -287,7 +287,7 @@ contract Hero3DTest is BaseTest {
         expectExactEmit();
         emit IHero3D.ErrorBlockAlreadyCompleted(sanitizedBlock);
         changePrank(mockRelayer);
-        underTest.onValidatorTriggered(0, winningBlock, validator, 0);
+        underTest.onValidatorTriggered(validator, winningBlock, 0, 0, 0);
         changePrank(user_A);
     }
 
@@ -302,7 +302,7 @@ contract Hero3DTest is BaseTest {
         emit IHero3D.BlockWon(sanitizedBlock, donate);
 
         changePrank(mockRelayer);
-        underTest.onValidatorTriggered(0, winningBlock, validator, 0);
+        underTest.onValidatorTriggered(validator, winningBlock, 0, 0, 0);
         changePrank(user_A);
     }
 
@@ -310,14 +310,10 @@ contract Hero3DTest is BaseTest {
         uint32 winningBlock = 999_322;
         uint32 guessBlock = winningBlock - winningBlock % GROUP_SIZE;
 
-        uint256 donate = underTest.TOO_LOW_BALANCE() - COST;
-
         underTest.guess{ value: COST }(guessBlock);
-        underTest.donate{ value: donate }();
 
         changePrank(mockRelayer);
-        underTest.onValidatorTriggered(0, winningBlock, validator, 0);
-        changePrank(user_A);
+        underTest.onValidatorTriggered(validator, winningBlock, 0, 0, 0);
 
         assertEq(underTest.lot(), 0);
     }
@@ -337,7 +333,7 @@ contract Hero3DTest is BaseTest {
         underTest.donate{ value: donate }();
 
         changePrank(mockRelayer);
-        underTest.onValidatorTriggered(0, winningBlock, validator, 0);
+        underTest.onValidatorTriggered(validator, winningBlock, 0, 0, 0);
         changePrank(user_A);
 
         assertEq(underTest.lot(), nextRound);
@@ -347,22 +343,21 @@ contract Hero3DTest is BaseTest {
         uint32 winningBlock = 999_322;
         uint32 guessBlock = winningBlock - winningBlock % GROUP_SIZE;
 
-        uint128 sendingEth = COST / 5;
-        uint128 donate = 6e18;
+        uint128 sendingEth = underTest.MINIMUM_GUESS_AMOUNT();
+        uint128 donate = 106e18;
         uint128 reward = donate + sendingEth;
 
         uint128 reducedReward = uint128(Math.mulDiv(reward, getGuessWeight(sendingEth), 1e18));
         uint128 nextRound = reward - reducedReward;
-
         reward = reducedReward;
-        nextRound += uint128(Math.mulDiv(reducedReward, DEFAULT_FEE.nextRound, MAX_BPS));
+
+        nextRound += uint128(Math.mulDiv(reward, DEFAULT_FEE.nextRound, MAX_BPS));
 
         underTest.guess{ value: sendingEth }(guessBlock);
         underTest.donate{ value: donate }();
 
         changePrank(mockRelayer);
-        underTest.onValidatorTriggered(0, winningBlock, validator, 0);
-        changePrank(user_A);
+        underTest.onValidatorTriggered(validator, winningBlock, 0, 0, 0);
 
         assertEq(underTest.lot(), nextRound);
     }
@@ -382,7 +377,7 @@ contract Hero3DTest is BaseTest {
         underTest.donate{ value: donate }();
 
         changePrank(mockRelayer);
-        underTest.onValidatorTriggered(0, winningBlock, validator, 0);
+        underTest.onValidatorTriggered(validator, winningBlock, 0, 0, 0);
         changePrank(user_A);
 
         assertEq(underTest.lot(), expectedNextRound);
@@ -414,7 +409,7 @@ contract Hero3DTest is BaseTest {
         underTest.guess{ value: COST }(winningBlock);
 
         changePrank(mockRelayer);
-        underTest.onValidatorTriggered(0, winningBlock, validator, 0);
+        underTest.onValidatorTriggered(validator, winningBlock, 0, 0, 0);
         changePrank(user_A);
 
         underTest.claim(winningBlock);
@@ -447,7 +442,7 @@ contract Hero3DTest is BaseTest {
         underTest.guess{ value: userBSendingEth }(winningBlock);
 
         changePrank(mockRelayer);
-        underTest.onValidatorTriggered(0, winningBlock, validator, 0);
+        underTest.onValidatorTriggered(validator, winningBlock, 0, 0, 0);
         changePrank(user_B);
 
         uint256 lot = underTest.getBlockData(winningBlock).winningLot;

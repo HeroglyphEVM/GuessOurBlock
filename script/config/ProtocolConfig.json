@@ -1,4 +1,13 @@
 {
+    "gnosis":
+    {
+        "01_owner": "0x888D768764A2E304215247F0bA3457cCb0f0ab4f",
+        "02_treasury": "0x888D768764A2E304215247F0bA3457cCb0f0ab4f",
+        "03_senderLzId": 0,
+        "04_receiverLzId": 0,
+        "05_senderLzEndpoint": "0x1a44076050125825900e736c501f859c50fE728c",
+        "06_receiverLzEndpoint": "0x1a44076050125825900e736c501f859c50fE728c"
+    },
     "arbitrum":
     {
         "01_owner": "0x888D768764A2E304215247F0bA3457cCb0f0ab4f",
@@ -19,7 +28,7 @@
     },
     "sepolia":
     {
-         "01_owner": "0x0000000000000000000000000000000000000000",
+        "01_owner": "0x835E072530503DddA07B2F35e05DD3e647a0D9F2",
         "02_treasury": "0x0000000000000000000000000000000000000000",
         "03_senderLzId": 0,
         "04_receiverLzId": 40161,
