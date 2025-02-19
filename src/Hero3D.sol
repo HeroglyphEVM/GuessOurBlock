@@ -23,6 +23,9 @@ contract Hero3D is IHero3D, Ownable, HeroglyphListener {
     uint32 public constant MINIMUM_BLOCK_AGE = 16;
     uint32 public constant GROUP_SIZE = 10;
 
+    string listenerWebsite;
+    string listenerDescription;
+
     address public treasury;
     uint32 public minimumBlockAge;
 
@@ -44,6 +47,9 @@ contract Hero3D is IHero3D, Ownable, HeroglyphListener {
 
         // Note: Even if the minimum block age is 17, we are setting it to two epoch to be safe
         minimumBlockAge = MINIMUM_BLOCK_AGE * 2;
+        listenerWebsite = "https://gnosis.heroglyphs.com/hero3d";
+        listenerDescription =
+            "Hero3D is a betting game based on the Heroglyph Protocol. Players must guess which batch of blocks will be proposed by a Heroglyph validator via a ticker.";
     }
 
     /// @inheritdoc IHero3D
@@ -258,5 +264,33 @@ contract Hero3D is IHero3D, Ownable, HeroglyphListener {
 
         fullWeightCost = _fullWeightCost;
         emit FullWeightCostUpdated(_fullWeightCost);
+    }
+
+    function updateListenerDescription(string memory _description) external onlyOwner {
+        listenerDescription = _description;
+    }
+
+    function updateListenerWebsite(string memory _website) external onlyOwner {
+        listenerWebsite = _website;
+    }
+
+    function getName() public pure override returns (string memory) {
+        return "Hero3D";
+    }
+
+    function getDescription() public view override returns (string memory) {
+        return listenerDescription;
+    }
+
+    function getWebsite() public view override returns (string memory) {
+        return listenerWebsite;
+    }
+
+    function isSetupNeeded() public pure override returns (bool) {
+        return false;
+    }
+
+    function getReservedTicker() public pure override returns (uint256) {
+        return 0;
     }
 }
